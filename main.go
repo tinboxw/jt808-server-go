@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/fakeyanss/jt808-server-go/wrapper"
 	"net/http"
 	"os"
 
@@ -12,7 +13,6 @@ import (
 
 	"github.com/fakeyanss/jt808-server-go/internal/config"
 	"github.com/fakeyanss/jt808-server-go/internal/protocol/model"
-	"github.com/fakeyanss/jt808-server-go/internal/server"
 	"github.com/fakeyanss/jt808-server-go/internal/storage"
 	"github.com/fakeyanss/jt808-server-go/pkg/logger"
 	"github.com/fakeyanss/jt808-server-go/pkg/routines"
@@ -41,7 +41,8 @@ func main() {
 		fmt.Println(banner)
 	}
 
-	serv := server.NewTCPServer()
+	//serv := server.NewTCPServer()
+	serv := wrapper.New()
 	addr := ":" + cfg.Server.Port.TCPPort
 	err := serv.Listen(addr)
 	if err != nil {
