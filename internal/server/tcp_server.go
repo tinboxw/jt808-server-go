@@ -109,7 +109,8 @@ func (serv *TCPServer) serve(session *model.Session) {
 }
 
 // 发送消息到终端设备, 外部调用
-func (serv *TCPServer) Send(id string, msg model.JT808Msg) {
+func (serv *TCPServer) Send(id string, smsg any) {
+	msg := smsg.(model.JT808Msg)
 	// session := serv.sessions[id]
 	session, err := storage.GetSession(id)
 	if err != nil && errors.Is(err, storage.ErrSessionClosed) {
