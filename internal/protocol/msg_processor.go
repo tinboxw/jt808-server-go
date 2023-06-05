@@ -36,6 +36,11 @@ type processOptions map[uint16]*action
 type action struct {
 	genData func() *model.ProcessData                       // 定义生成消息的类型。由于go不支持type作为参数，所以这里直接初始化结构体
 	process func(context.Context, *model.ProcessData) error // 处理消息的逻辑。可以设置消息字段、根据消息做相应处理逻辑
+
+	//prepare *model.JT808Msg
+	//process func (ctx context.Context, )
+	//post *model.JT808Msg
+
 }
 
 // 表驱动，初始化消息处理方法组

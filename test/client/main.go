@@ -73,10 +73,10 @@ func keepalive(ctx context.Context, cli *client.TCPClient) {
 func buildDeviceGeo(ctx context.Context) {
 	device := getDevice(ctx)
 	deviceGeoConf := ctx.Value(DeviceGeoConfCtxKey{}).(*config.DeviceGeoConf)
-	deivceGeo := datagen.GenDeviceGeo(deviceGeoConf, device)
+	deviceGeo := datagen.GenDeviceGeo(deviceGeoConf, device)
 	geoCache := storage.GetGeoCache()
 	rb := geoCache.GetGeoRingByPhone(device.Phone)
-	rb.Write(deivceGeo)
+	rb.Write(deviceGeo)
 }
 
 func reportLocation(ctx context.Context, cli *client.TCPClient) {

@@ -90,6 +90,13 @@ type DeviceGeoConf struct {
 	Geo                    *geoConf      `yaml:"geo"`
 	Location               *locationConf `yaml:"location"`
 	Drive                  *driveConf    `yaml:"drive"`
+	Expand                 []expandConf  `yaml:"expand,flow"`
+}
+
+type expandConf struct {
+	Id uint8 `yaml:"id"`
+	//Length  uint8  `yaml:"length"`// 长度通过 payload 重新计算
+	Payload string `yaml:"payload"` // hex数组，注意：是hex数组字符串，每两个字符为一个字节
 }
 
 type geoConf struct {

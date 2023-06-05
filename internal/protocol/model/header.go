@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 
 	"github.com/fakeyanss/jt808-server-go/internal/codec/hex"
@@ -28,6 +29,8 @@ func (h *MsgHeader) Decode(pkt []byte) error {
 	var idx int
 
 	h.MsgID = hex.ReadWord(pkt, &idx) // 消息id [0,2)位
+
+	fmt.Printf("Recv RawMsgID: 0x%04x\n", h.MsgID)
 
 	h.Attr = &MsgBodyAttr{}
 	err := h.Attr.Decode(hex.ReadWord(pkt, &idx)) // 消息体属性 [2,4)位
