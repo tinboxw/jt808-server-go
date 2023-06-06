@@ -23,18 +23,18 @@ type Device struct {
 
 	// 连接信息
 
-	SessionID      string            `json:"sessionId"`
-	TransProto     TransportProtocol `json:"transProto"`
-	Conn           net.Conn          `json:"-"`
-	Keepalive      time.Duration     `json:"keepalive"`   // 保活时长
-	LastestComTime time.Time         `json:"lastComTime"` // 最近一次交互时间
-	Status         DeviceStatus      `json:"status"`
+	SessionID   string            `json:"sessionId"`
+	TransProto  TransportProtocol `json:"transProto"`
+	Conn        net.Conn          `json:"-"`
+	Keepalive   time.Duration     `json:"keepalive"`   // 保活时长
+	LastComTime time.Time         `json:"lastComTime"` // 最近一次交互时间
+	Status      DeviceStatus      `json:"status"`
 
 	// 设备信息
 
 	VersionDesc     VersionType `json:"versionDesc"`     // jt808协议版本描述, 区分 2011 / 2013 / 2019
 	ProtocolVersion uint8       `json:"protocolVersion"` // jt808协议版本定义, 区分 (2011&2013) / 2019后续版本修订
-	AuthCode        string      `json:"authcode"`
+	AuthCode        string      `json:"authCode"`
 	IMEI            string      `json:"imei"`
 	SoftwareVersion string      `json:"softwareVersion"` // 终端软件版本号(非jt808协议版本)
 }
@@ -48,21 +48,21 @@ func NewDevice(in *Msg0100, session *Session) *Device {
 		TransProto:      session.GetTransProto(),
 		Conn:            session.Conn,
 		Keepalive:       time.Minute * 1,
-		LastestComTime:  time.Now(),
+		LastComTime:     time.Now(),
 		Status:          DeviceStatusOffline,
 		VersionDesc:     in.Header.Attr.VersionDesc,
 		ProtocolVersion: in.Header.ProtocolVersion,
 	}
 }
 
-func (d *Device) ShouleTurnOffline() bool {
+func (d *Device) ShouldTurnOffline() bool {
 	now := time.Now().UnixMilli()
-	return d.Status != DeviceStatusOffline && now > d.Keepalive.Milliseconds()+d.LastestComTime.UnixMilli()
+	return d.Status != DeviceStatusOffline && now > d.Keepalive.Milliseconds()+d.LastComTime.UnixMilli()
 }
 
 func (d *Device) ShouldClear() bool {
 	now := time.Now().UnixMilli()
-	return d.Status == DeviceStatusOffline && now > d.Keepalive.Milliseconds()+d.LastestComTime.UnixMilli()
+	return d.Status == DeviceStatusOffline && now > d.Keepalive.Milliseconds()+d.LastComTime.UnixMilli()
 }
 
 // 终端设备地理位置状态相关信息

@@ -14,7 +14,12 @@ var ErrDeviceNotFound = errors.New("device not found")
 type DeviceCache struct {
 	cacheByPlate map[string]*model.Device
 	cacheByPhone map[string]*model.Device
-	mutex        *sync.Mutex
+
+	// 当产生告警时的回调函数
+	hook EventHandler
+
+	// 锁
+	mutex *sync.Mutex
 }
 
 var deviceCacheSingleton *DeviceCache
@@ -72,6 +77,17 @@ func (cache *DeviceCache) CacheDevice(d *model.Device) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 	cache.cacheDevice(d)
+}
+
+func (cache *DeviceCache) SetStatusHook(handler EventHandler) {
+	cache.hook = handler
+}
+
+func (cache *DeviceCache) UpdateDeviceStatus(d *model.Device, to model.DeviceStatus) {
+	_ = cache.hook(to)
+
+	d.Status = to
+	cache.CacheDevice(d)
 }
 
 func (cache *DeviceCache) delDevice(carPlate, phone *string) {

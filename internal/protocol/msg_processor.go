@@ -150,7 +150,7 @@ func (mp *JT808MsgProcessor) Process(ctx context.Context, pkt *model.PacketData)
 	}
 
 	// process segment packet
-	if !pkt.SegCompleted {
+	if pkt.Header.IsFragmented() && !pkt.SegCompleted {
 		return processSegmentPacket(ctx, pkt)
 	}
 
@@ -245,7 +245,7 @@ func processMsg0002(_ context.Context, data *model.ProcessData) error {
 		return errors.Wrapf(err, "Fail to find device cache, phoneNumber=%s", data.Incoming.GetHeader().PhoneNumber)
 	}
 
-	device.LastestComTime = time.Now()
+	device.LastComTime = time.Now()
 	cache.CacheDevice(device)
 
 	return nil
@@ -319,12 +319,12 @@ func processMsg0102(_ context.Context, data *model.ProcessData) error {
 		cache.DelDeviceByPhone(device.Phone)
 	} else {
 		// 鉴权通过
-		device.Status = model.DeviceStatusOnline
-		device.LastestComTime = time.Now()
+		device.LastComTime = time.Now()
 		device.AuthCode = in.AuthCode
 		device.IMEI = in.IMEI
 		device.SoftwareVersion = in.SoftwareVersion
-		cache.CacheDevice(device)
+		//cache.CacheDevice(device)
+		cache.UpdateDeviceStatus(device, model.DeviceStatusOnline)
 	}
 
 	return nil
@@ -366,14 +366,28 @@ func processMsg0200(_ context.Context, data *model.ProcessData) error {
 	}
 
 	if dg.Geo.ACCStatus == 0 { // ACC关闭，设备休眠
-		device.Status = model.DeviceStatusSleeping
-		device.LastestComTime = time.Now()
-		cache.CacheDevice(device)
+		//device.Status = model.DeviceStatusSleeping
+		device.LastComTime = time.Now()
+		cache.UpdateDeviceStatus(device, model.DeviceStatusSleeping)
 	}
 
 	geoCache := storage.GetGeoCache()
-	rb := geoCache.GetGeoRingByPhone(device.Phone)
-	rb.Write(dg)
+	geoCache.SaveGeoInfoByPhone(device.Phone, dg)
+
+	if in.Expand != nil {
+		// 尝试解析是否有告警信息上报
+		for i := 0; i < len(in.Expand); i++ {
+			expand := in.Expand[i]
+			switch expand.Id {
+			case model.ExpandIdAiDSM:
+				alarm := storage.GetDeviceAlarmMsgCache()
+				alarm.CacheDeviceAlarmMsg(device.Phone, expand.Value)
+				break
+			default: // ignore other alarm
+				break
+			}
+		}
+	}
 
 	return nil
 }
@@ -394,7 +408,7 @@ func processMsg8001(_ context.Context, data *model.ProcessData) error {
 
 		// 仅在未注册成功时执行一次
 		device.Status = model.DeviceStatusOnline
-		device.LastestComTime = time.Now()
+		device.LastComTime = time.Now()
 		cache.CacheDevice(device)
 	}
 

@@ -161,9 +161,9 @@ func genExpand(conf *config.DeviceGeoConf) []model.Msg0200Expand {
 	for i := 0; i < len(conf.Expand); i++ {
 		src := conf.Expand[i]
 		expand = append(expand, model.Msg0200Expand{
-			Id:      src.Id,
-			Length:  uint8(len(src.Payload) / 2),
-			Payload: hex.Str2Byte(src.Payload),
+			Id:     src.Id,
+			Length: uint8(len(src.Payload) / 2),
+			Value:  hex.Str2Byte(src.Payload),
 		})
 	}
 

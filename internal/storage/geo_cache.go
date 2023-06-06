@@ -42,6 +42,11 @@ func (cache *GeoCache) GetGeoRingByPhone(phone string) *container.RingBuffer {
 	return cache.cacheByPhone[phone]
 }
 
+func (cache *GeoCache) SaveGeoInfoByPhone(phone string, dg *model.DeviceGeo) {
+	rb := cache.GetGeoRingByPhone(phone)
+	rb.Write(dg)
+}
+
 func (cache *GeoCache) GetGeoLatestByPhone(phone string) (*model.DeviceGeo, error) {
 	rb := cache.GetGeoRingByPhone(phone)
 	if latest, ok := rb.Latest().(*model.DeviceGeo); ok {

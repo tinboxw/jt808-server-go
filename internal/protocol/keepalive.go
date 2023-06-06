@@ -1,13 +1,13 @@
 package protocol
 
 import (
+	"github.com/fakeyanss/jt808-server-go/internal/protocol/model"
 	"sync"
 
 	"github.com/fakeyanss/gron"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
-	"github.com/fakeyanss/jt808-server-go/internal/protocol/model"
 	"github.com/fakeyanss/jt808-server-go/internal/storage"
 )
 
@@ -71,10 +71,9 @@ func checkDeviceKeepalive(t *KeepaliveTimer, devicePhone string) {
 		log.Debug().Str("device", devicePhone).Msg("Fail to find device cache")
 		t.Cancel(devicePhone)
 	}
-	if d.ShouleTurnOffline() {
+	if d.ShouldTurnOffline() {
 		// 保活失效
-		d.Status = model.DeviceStatusOffline
-		cache.CacheDevice(d)
+		cache.UpdateDeviceStatus(d, model.DeviceStatusOffline)
 		log.Debug().Str("device", devicePhone).Msg("Turn offline for device keepalive expired")
 	} else if d.ShouldClear() {
 		d.Conn.Close()
