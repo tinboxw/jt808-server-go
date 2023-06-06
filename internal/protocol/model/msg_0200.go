@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/fakeyanss/jt808-server-go/internal/codec/hex"
+	"github.com/rs/zerolog/log"
 )
 
 //ADAS：高级驾驶辅助系统 (Advanced Driver Assistant System)
@@ -223,6 +224,13 @@ func cond(c bool, t, f any) any {
 }
 
 func expandAiDSMDecode(data []byte) any {
+	if len(data) < 47 {
+		// 不合法的数据
+		// 根据协议规范，
+		// dsm告警 需要47字节数据
+		return nil
+	}
+
 	idx := 0
 	alarm := &AlarmMsg{
 		ID:    hex.ReadDoubleWord(data, &idx),
@@ -290,7 +298,19 @@ func (m *Msg0200) Decode(packet *PacketData) error {
 		fn := expandDecodeFunctions[id]
 		if fn != nil {
 			// 通过回调解析
-			expand.Value = fn(hex.ReadBytes(pkt, &idx, int(length)))
+			data := hex.ReadBytes(pkt, &idx, int(length))
+			value := fn(data)
+			if value == nil {
+				// 当value为空，说明传入的参数不合法
+				// 无法解析，就直接跳过
+				log.Error().
+					Uint8("id", id).
+					Uint8("length", length).
+					Str("hex", hex.Byte2Str(data)).
+					Msg("Decode 0x0200 msg expand failed.")
+				continue
+			}
+			expand.Value = value
 		} else {
 			// 没有处理回调，
 			// 所以直接拿hex-buf

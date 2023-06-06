@@ -6,13 +6,13 @@ import (
 	"github.com/fakeyanss/jt808-server-go/internal/protocol/model"
 	"github.com/fakeyanss/jt808-server-go/internal/server"
 	"github.com/fakeyanss/jt808-server-go/internal/storage"
+	"github.com/fakeyanss/jt808-server-go/pkg/logger"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 )
 
 type LogLevelType = config.LogLevelType
 type LogConf = config.LogConf
-
-var ParseLoggerConfig = config.ParseLoggerConfig
 
 type Jt808Server struct {
 	server.Server
@@ -36,6 +36,11 @@ const (
 
 type EventHandler func(any) error
 
+func (s *Jt808Server) SetLogger(c *LogConf) {
+	logConfig := config.ParseLoggerConfig(c)
+	log.Logger = *logger.Configure(logConfig).Logger
+}
+
 func (s *Jt808Server) SetHooks(ev EventType, handler EventHandler) error {
 	switch ev {
 	case EventStatusChange:
@@ -56,6 +61,10 @@ func (s *Jt808Server) SetHooks(ev EventType, handler EventHandler) error {
 	case EventReportAlarm:
 		cache := storage.GetDeviceAlarmMsgCache()
 		cache.SetAlarmMsgHook(func(msg any) error {
+			if msg == nil {
+				return nil
+			}
+
 			data, err := json.Marshal(msg)
 			if err != nil {
 				return err
