@@ -2,11 +2,17 @@ package wrapper
 
 import (
 	"encoding/json"
+	"github.com/fakeyanss/jt808-server-go/internal/config"
 	"github.com/fakeyanss/jt808-server-go/internal/protocol/model"
 	"github.com/fakeyanss/jt808-server-go/internal/server"
 	"github.com/fakeyanss/jt808-server-go/internal/storage"
 	"github.com/pkg/errors"
 )
+
+type LogLevelType = config.LogLevelType
+type LogConf = config.LogConf
+
+var ParseLoggerConfig = config.ParseLoggerConfig
 
 type Jt808Server struct {
 	server.Server

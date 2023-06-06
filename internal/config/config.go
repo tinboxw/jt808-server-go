@@ -30,116 +30,116 @@ const (
 	DefaultCliConfPath  string = "test/client/configs/default.yaml"
 )
 
-type logConf struct {
-	ConsoleEnable       bool         `yaml:"consoleEnable"`
-	FileEnable          bool         `yaml:"fileEnable"`
-	PrintAsJSON         bool         `yaml:"printAsJson"`
-	LogLevel            LogLevelType `yaml:"logLevel"`
-	LogDirectory        string       `yaml:"logDirectory"`
-	LogFile             string       `yaml:"logFile"`
-	MaxSizeOfRolling    int          `yaml:"maxSizeOfRolling"`
-	MaxBackupsOfRolling int          `yaml:"maxBackupsOfRolling"`
-	MaxAgeOfRolling     int          `yaml:"maxAgeOfRolling"`
+type LogConf struct {
+	ConsoleEnable       bool         `yaml:"consoleEnable"  json:"consoleEnable"`
+	FileEnable          bool         `yaml:"fileEnable"  json:"fileEnable"`
+	PrintAsJSON         bool         `yaml:"printAsJson"  json:"printAsJson"`
+	LogLevel            LogLevelType `yaml:"logLevel"  json:"logLevel"`
+	LogDirectory        string       `yaml:"logDirectory"  json:"logDirectory"`
+	LogFile             string       `yaml:"logFile"  json:"logFile"`
+	MaxSizeOfRolling    int          `yaml:"maxSizeOfRolling"  json:"maxSizeOfRolling"`
+	MaxBackupsOfRolling int          `yaml:"maxBackupsOfRolling"  json:"maxBackupsOfRolling"`
+	MaxAgeOfRolling     int          `yaml:"maxAgeOfRolling"  json:"maxAgeOfRolling"`
 }
 
 type serverConf struct {
-	Name   string      `yaml:"name"`
-	Port   *servPort   `yaml:"port"`
-	Banner *servBanner `yaml:"banner"`
+	Name   string      `yaml:"name" json:"name"`
+	Port   *servPort   `yaml:"port" json:"port"`
+	Banner *servBanner `yaml:"banner" json:"banner"`
 }
 
 type servPort struct {
-	TCPPort  string `yaml:"tcpPort"`
-	UDPPort  string `yaml:"udpPort"`
-	HTTPPort string `yaml:"httpPort"`
+	TCPPort  string `yaml:"tcpPort" json:"tcpPort"`
+	UDPPort  string `yaml:"udpPort" json:"udpPort"`
+	HTTPPort string `yaml:"httpPort" json:"httpPort"`
 }
 
 type servBanner struct {
-	Enable     bool   `yaml:"enable"`
-	BannerPath string `yaml:"bannerPath"`
+	Enable     bool   `yaml:"enable" json:"enable"`
+	BannerPath string `yaml:"bannerPath" json:"bannerPath"`
 }
 
 type clientConf struct {
-	Name         string            `yaml:"name"`
-	Conn         *connection       `yaml:"conn"`
-	Concurrency  int               `yaml:"concurrency"`
-	Device       *DeviceConf       `yaml:"device"`
-	DeviceGeo    *DeviceGeoConf    `yaml:"deviceGeo"`
-	DeviceParams *DeviceParamsConf `yaml:"deviceParams"`
+	Name         string            `yaml:"name" json:"name"`
+	Conn         *connection       `yaml:"conn" json:"conn"`
+	Concurrency  int               `yaml:"concurrency" json:"concurrency"`
+	Device       *DeviceConf       `yaml:"device" json:"device"`
+	DeviceGeo    *DeviceGeoConf    `yaml:"deviceGeo" json:"deviceGeo"`
+	DeviceParams *DeviceParamsConf `yaml:"deviceParams" json:"deviceParams"`
 }
 
 type connection struct {
-	RemoteAddr string `yaml:"remoteAddr"`
+	RemoteAddr string `yaml:"remoteAddr" json:"remoteAddr"`
 }
 
 type DeviceConf struct {
-	IDReg           string `yaml:"idReg"`
-	IMEIReg         string `yaml:"imeiReg"`
-	PhoneReg        string `yaml:"phoneReg"`
-	PlateReg        string `yaml:"plateReg"`
-	ProtocolVersion string `yaml:"protocolVersion"`
-	TransProto      string `yaml:"transProto"`
-	Keepalive       int    `yaml:"keepalive"`
-	ProvinceIDReg   string `yaml:"provinceIdReg"`
-	CityIDReg       string `yaml:"cityIdReg"`
-	PlateColorReg   string `yaml:"plateColorReg"`
+	IDReg           string `yaml:"idReg" json:"idReg,omitempty"`
+	IMEIReg         string `yaml:"imeiReg" json:"imeiReg,omitempty"`
+	PhoneReg        string `yaml:"phoneReg" json:"phoneReg,omitempty"`
+	PlateReg        string `yaml:"plateReg" json:"plateReg,omitempty"`
+	ProtocolVersion string `yaml:"protocolVersion" json:"protocolVersion,omitempty"`
+	TransProto      string `yaml:"transProto" json:"transProto,omitempty"`
+	Keepalive       int    `yaml:"keepalive" json:"keepalive,omitempty"`
+	ProvinceIDReg   string `yaml:"provinceIdReg" json:"provinceIDReg,omitempty"`
+	CityIDReg       string `yaml:"cityIdReg" json:"cityIDReg,omitempty"`
+	PlateColorReg   string `yaml:"plateColorReg" json:"plateColorReg,omitempty"`
 }
 
 type DeviceGeoConf struct {
-	LocationReportInterval int           `yaml:"locationReportInterval"`
-	Geo                    *geoConf      `yaml:"geo"`
-	Location               *locationConf `yaml:"location"`
-	Drive                  *driveConf    `yaml:"drive"`
-	Expand                 []expandConf  `yaml:"expand,flow"`
+	LocationReportInterval int           `yaml:"locationReportInterval" json:"locationReportInterval,omitempty"`
+	Geo                    *geoConf      `yaml:"geo" json:"geo,omitempty"`
+	Location               *locationConf `yaml:"location" json:"location,omitempty"`
+	Drive                  *driveConf    `yaml:"drive" json:"drive,omitempty"`
+	Expand                 []expandConf  `yaml:"expand,flow" json:"expand,omitempty"`
 }
 
 type expandConf struct {
-	Id uint8 `yaml:"id"`
+	Id uint8 `yaml:"id" json:"id,omitempty"`
 	//Length  uint8  `yaml:"length"`// 长度通过 payload 重新计算
-	Payload string `yaml:"payload"` // hex数组，注意：是hex数组字符串，每两个字符为一个字节
+	Value string `yaml:"value" json:"value,omitempty"` // hex数组，注意：是hex数组字符串，每两个字符为一个字节
 }
 
 type geoConf struct {
-	ACCStatusReg              string `yaml:"accStatusReg"`
-	LocationStatusReg         string `yaml:"locationStatusReg"`
-	LatitudeTypeReg           string `yaml:"latitudeTypeReg"`
-	LongitudeTypeReg          string `yaml:"longitudeTypeReg"`
-	OperatingStatusReg        string `yaml:"operatingStatusReg"`
-	GeoEncryptionStatusReg    string `yaml:"geoEncryptionStatusReg"`
-	LoadStatusReg             string `yaml:"loadStatusReg"`
-	FuelSystemStatusReg       string `yaml:"fuelSystemStatusReg"`
-	AlternatorSystemStatusReg string `yaml:"alternatorSystemStatusReg"`
-	DoorLockedStatusReg       string `yaml:"doorLockedStatusReg"`
-	FrontDoorStatusReg        string `yaml:"frontDoorStatusReg"`
-	MidDoorStatusReg          string `yaml:"midDoorStatusReg"`
-	BackDoorStatusReg         string `yaml:"backDoorStatusReg"`
-	DriverDoorStatusReg       string `yaml:"driverDoorStatusReg"`
-	CustomDoorStatusReg       string `yaml:"customDoorStatusReg"`
-	GPSLocationStatusReg      string `yaml:"gpsLocationStatusReg"`
-	BeidouLocationStatusReg   string `yaml:"beidouLocationStatusReg"`
-	GLONASSLocationStatusReg  string `yaml:"glonassLocationStatusReg"`
-	GalileoLocationStatusReg  string `yaml:"galileoLocationStatusReg"`
-	DrivingStatusReg          string `yaml:"drivingStatusReg"`
+	ACCStatusReg              string `yaml:"accStatusReg" json:"accStatusReg,omitempty"`
+	LocationStatusReg         string `yaml:"locationStatusReg" json:"locationStatusReg,omitempty"`
+	LatitudeTypeReg           string `yaml:"latitudeTypeReg" json:"latitudeTypeReg,omitempty"`
+	LongitudeTypeReg          string `yaml:"longitudeTypeReg" json:"longitudeTypeReg,omitempty"`
+	OperatingStatusReg        string `yaml:"operatingStatusReg" json:"operatingStatusReg,omitempty"`
+	GeoEncryptionStatusReg    string `yaml:"geoEncryptionStatusReg" json:"geoEncryptionStatusReg,omitempty"`
+	LoadStatusReg             string `yaml:"loadStatusReg" json:"loadStatusReg,omitempty"`
+	FuelSystemStatusReg       string `yaml:"fuelSystemStatusReg" json:"fuelSystemStatusReg,omitempty"`
+	AlternatorSystemStatusReg string `yaml:"alternatorSystemStatusReg" json:"alternatorSystemStatusReg,omitempty"`
+	DoorLockedStatusReg       string `yaml:"doorLockedStatusReg" json:"doorLockedStatusReg,omitempty"`
+	FrontDoorStatusReg        string `yaml:"frontDoorStatusReg" json:"frontDoorStatusReg,omitempty"`
+	MidDoorStatusReg          string `yaml:"midDoorStatusReg" json:"midDoorStatusReg,omitempty"`
+	BackDoorStatusReg         string `yaml:"backDoorStatusReg" json:"backDoorStatusReg,omitempty"`
+	DriverDoorStatusReg       string `yaml:"driverDoorStatusReg" json:"driverDoorStatusReg,omitempty"`
+	CustomDoorStatusReg       string `yaml:"customDoorStatusReg" json:"customDoorStatusReg,omitempty"`
+	GPSLocationStatusReg      string `yaml:"gpsLocationStatusReg" json:"GPSLocationStatusReg,omitempty"`
+	BeidouLocationStatusReg   string `yaml:"beidouLocationStatusReg" json:"beidouLocationStatusReg,omitempty"`
+	GLONASSLocationStatusReg  string `yaml:"glonassLocationStatusReg" json:"GLONASSLocationStatusReg,omitempty"`
+	GalileoLocationStatusReg  string `yaml:"galileoLocationStatusReg" json:"galileoLocationStatusReg,omitempty"`
+	DrivingStatusReg          string `yaml:"drivingStatusReg" json:"drivingStatusReg,omitempty"`
 }
 
 type locationConf struct {
-	LatitudeReg  string `yaml:"latitudeReg"`
-	LongitudeReg string `yaml:"longitudeReg"`
-	AltitudeReg  string `yaml:"altitudeReg"`
+	LatitudeReg  string `yaml:"latitudeReg" json:"latitudeReg,omitempty"`
+	LongitudeReg string `yaml:"longitudeReg" json:"longitudeReg,omitempty"`
+	AltitudeReg  string `yaml:"altitudeReg" json:"altitudeReg,omitempty"`
 }
 
 type driveConf struct {
-	SpeedReg     string `yaml:"speedReg"`
-	DirectionReg string `yaml:"directionReg"`
+	SpeedReg     string `yaml:"speedReg" json:"speedReg,omitempty"`
+	DirectionReg string `yaml:"directionReg" json:"directionReg,omitempty"`
 }
 
 type DeviceParamsConf struct {
 }
 
 type Config struct {
-	Log    *logConf    `yaml:"log"`
-	Server *serverConf `yaml:"server"`
-	Client *clientConf `yaml:"client"`
+	Log    *LogConf    `yaml:"log" json:"log"`
+	Server *serverConf `yaml:"server" json:"server"`
+	Client *clientConf `yaml:"client" json:"client"`
 }
 
 var (
@@ -184,8 +184,7 @@ func Load(confFilePath string) *Config {
 	return config
 }
 
-func (c *Config) ParseLogConf() *logger.Config {
-	logCfg := c.Log
+func ParseLoggerConfig(logCfg *LogConf) *logger.Config {
 	var logLevel int8
 	switch logCfg.LogLevel {
 	case "DEBUG":

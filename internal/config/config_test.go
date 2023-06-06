@@ -21,7 +21,7 @@ func TestLoad(t *testing.T) {
 				confFilePath: "./testdata/test.yaml",
 			},
 			want: &Config{
-				Log: &logConf{
+				Log: &LogConf{
 					ConsoleEnable:       true,
 					FileEnable:          true,
 					PrintAsJSON:         false,

@@ -167,7 +167,7 @@ func main() {
 	fmt.Printf("Start with configuration %v\n", cfgPath)
 	cfg := config.Load(cfgPath)
 
-	logCfg := cfg.ParseLogConf()
+	logCfg := config.ParseLoggerConfig(cfg.Log)
 	log.Logger = *logger.Configure(logCfg).Logger
 
 	var cliWg sync.WaitGroup

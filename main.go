@@ -27,7 +27,7 @@ func main() {
 	fmt.Printf("Start with configuration %v\n", cfgPath)
 	cfg := config.Load(cfgPath)
 
-	logConfig := cfg.ParseLogConf()
+	logConfig := config.ParseLoggerConfig(cfg.Log)
 	log.Logger = *logger.Configure(logConfig).Logger
 
 	if cfg.Server.Banner.Enable {
