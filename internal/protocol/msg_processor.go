@@ -175,7 +175,11 @@ func (mp *JT808MsgProcessor) Process(ctx context.Context, pkt *model.PacketData)
 			return nil, errors.Wrap(err, "Fail to serialize incoming msg to json")
 		}
 		// for debug
-		log.Debug().Str("id", session.ID).Str("RawMsgID", fmt.Sprintf("0x%04x", in.GetHeader().MsgID)).RawJSON("incoming", inJSON).Msg("Received jt808 msg.")
+		log.Debug().
+			Str("sessionId", session.ID).
+			Str("rawMsgID", fmt.Sprintf("0x%04x", in.GetHeader().MsgID)).
+			RawJSON("incoming", inJSON).
+			Msg("Received jt808 msg.")
 	}
 
 	// 生成待回复的消息
@@ -195,7 +199,7 @@ func (mp *JT808MsgProcessor) Process(ctx context.Context, pkt *model.PacketData)
 			outJSON, _ := json.Marshal(out)
 			session := ctx.Value(model.SessionCtxKey{}).(*model.Session)
 			// for debug
-			log.Debug().Str("id", session.ID).Str("RawMsgID", fmt.Sprintf("0x%04x", out.GetHeader().MsgID)).RawJSON("outgoing", outJSON).
+			log.Debug().Str("sessionId", session.ID).Str("RawMsgID", fmt.Sprintf("0x%04x", out.GetHeader().MsgID)).RawJSON("outgoing", outJSON).
 				Msg("Generating jt808 outgoing msg.")
 		}()
 	}
@@ -374,18 +378,16 @@ func processMsg0200(_ context.Context, data *model.ProcessData) error {
 	geoCache := storage.GetGeoCache()
 	geoCache.SaveGeoInfoByPhone(device.Phone, dg)
 
-	if in.Expand != nil {
-		// 尝试解析是否有告警信息上报
-		for i := 0; i < len(in.Expand); i++ {
-			expand := in.Expand[i]
-			switch expand.Id {
-			case model.ExpandIdAiDSM:
-				alarm := storage.GetDeviceAlarmMsgCache()
-				alarm.CacheDeviceAlarmMsg(device.Phone, expand.Value)
-				break
-			default: // ignore other alarm
-				break
-			}
+	// 尝试解析是否有告警信息上报
+	for i := 0; i < len(in.Extra); i++ {
+		extra := in.Extra[i]
+		switch extra.Id {
+		case model.ExtraIdAiDSM:
+			alarm := storage.GetDeviceAlarmMsgCache()
+			alarm.CacheDeviceAlarmMsg(device.Phone, extra.Value)
+			break
+		default: // ignore other alarm
+			break
 		}
 	}
 

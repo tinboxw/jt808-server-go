@@ -49,7 +49,7 @@ func (cli *TCPClient) Start() {
 			continue
 		}
 
-		log.Error().Err(err).Str("id", cli.Session.ID).Msg("Failed to serve session")
+		log.Error().Err(err).Str("sessionId", cli.Session.ID).Msg("Failed to serve session")
 
 		switch {
 		case errors.Is(err, io.EOF), errors.Is(err, io.ErrClosedPipe), errors.Is(err, net.ErrClosed), errors.Is(err, protocol.ErrActiveClose):

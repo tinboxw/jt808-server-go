@@ -45,6 +45,14 @@ func (serv *TCPServer) Start() {
 		conn, err := serv.listener.Accept()
 		if err != nil {
 			log.Error().Err(err).Msg("Fail to do listener accept")
+			switch {
+			case errors.Is(err, io.EOF),
+				errors.Is(err, io.ErrClosedPipe),
+				errors.Is(err, net.ErrClosed):
+				return // close connection when EOF or closed
+			default:
+				continue
+			}
 		} else {
 			session := serv.accept(conn)
 			routines.GoSafe(func() { serv.serve(session) })
@@ -79,7 +87,7 @@ func (serv *TCPServer) remove(session *model.Session) {
 	storage.ClearSession(session.ID)
 	// delete(serv.sessions, session.ID)
 
-	log.Debug().Str("id", session.ID).Msg("Closing connection from remote.")
+	log.Debug().Str("sessionId", session.ID).Msg("Closing connection from remote.")
 }
 
 // 处理每个session的消息
@@ -97,10 +105,13 @@ func (serv *TCPServer) serve(session *model.Session) {
 			continue
 		}
 
-		log.Error().Err(err).Str("id", session.ID).Msg("Failed to serve session")
+		log.Error().Err(err).Str("sessionId", session.ID).Msg("Failed to serve session")
 
 		switch {
-		case errors.Is(err, io.EOF), errors.Is(err, io.ErrClosedPipe), errors.Is(err, net.ErrClosed), errors.Is(err, storage.ErrDeviceNotFound):
+		case errors.Is(err, io.EOF),
+			errors.Is(err, io.ErrClosedPipe),
+			errors.Is(err, net.ErrClosed),
+			errors.Is(err, storage.ErrDeviceNotFound):
 			return // close connection when EOF or closed
 		default:
 			time.Sleep(1 * time.Second)

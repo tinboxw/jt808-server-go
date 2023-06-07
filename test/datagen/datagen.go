@@ -155,19 +155,19 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func genExpand(conf *config.DeviceGeoConf) []model.Msg0200Expand {
-	var expand []model.Msg0200Expand
+func genExtra(conf *config.DeviceGeoConf) []model.Msg0200Extra {
+	var extra []model.Msg0200Extra
 
-	for i := 0; i < len(conf.Expand); i++ {
-		src := conf.Expand[i]
-		expand = append(expand, model.Msg0200Expand{
+	for i := 0; i < len(conf.Extra); i++ {
+		src := conf.Extra[i]
+		extra = append(extra, model.Msg0200Extra{
 			Id:     src.Id,
 			Length: uint8(len(src.Value) / 2),
 			Value:  hex.Str2Byte(src.Value),
 		})
 	}
 
-	return expand
+	return extra
 }
 
 func GenMsg0200(conf *config.DeviceGeoConf, device *model.Device, deviceGeo *model.DeviceGeo) *model.Msg0200 {
@@ -185,7 +185,7 @@ func GenMsg0200(conf *config.DeviceGeoConf, device *model.Device, deviceGeo *mod
 		Altitude:   deviceGeo.Location.Altitude + uint16(altitudeOffset),
 		Speed:      uint16((deviceGeo.Drive.Speed + speedOffset) * model.SpeedAccuracy),
 		Direction:  uint16(nextDirection),
-		Expand:     genExpand(conf),
+		Extra:      genExtra(conf),
 	}
 	m.Time = hex.FormatTime(time.Now())
 

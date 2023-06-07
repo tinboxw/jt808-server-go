@@ -12,10 +12,10 @@ import (
 //CAN：控制器局域网络（Controller Area Network）
 
 const (
-	ExpandIdAiADAS = 0x64
-	ExpandIdAiDSM  = 0x65
-	ExpandIdAiTPMS = 0x66
-	ExpandIdAiBSD  = 0x67
+	ExtraIdAiADAS = 0x64
+	ExtraIdAiDSM  = 0x65
+	ExtraIdAiTPMS = 0x66
+	ExtraIdAiBSD  = 0x67
 )
 
 // 0x01:疲劳驾驶报警
@@ -42,9 +42,9 @@ const (
 	ON  = true
 )
 
-// ExpandMsg
+// ExtraMsg
 // 附加消息
-//type ExpandMsg struct {
+//type ExtraMsg struct {
 //	// 扩展ID，
 //	//0x64 高级驾驶辅助系统报警信息，定义见表 4-15
 //	//0x65 驾驶员状态监测系统报警信息，定义见表 4-17
@@ -169,7 +169,7 @@ type AlarmMsgDSM struct {
 }
 
 // 附加信息
-type Msg0200Expand struct {
+type Msg0200Extra struct {
 	Id     uint8 `json:"id"`
 	Length uint8 `json:"length"`
 	Value  any   `json:"value"`
@@ -178,27 +178,27 @@ type Msg0200Expand struct {
 // Msg0200
 // 位置信息汇报
 type Msg0200 struct {
-	Header     *MsgHeader      `json:"header"`
-	AlarmSign  uint32          `json:"alarmSign"`  // 报警标志位
-	StatusSign uint32          `json:"statusSign"` // 状态标志位
-	Latitude   uint32          `json:"latitude"`   // 纬度，以度为单位的纬度值乘以10的6次方，精确到百万分之一度
-	Longitude  uint32          `json:"longitude"`  // 精度，以度为单位的经度值乘以10的6次方，精确到百万分之一度
-	Altitude   uint16          `json:"altitude"`   // 高程，海拔高度，单位为米(m)
-	Speed      uint16          `json:"speed"`      // 速度，单位为0.1公里每小时(1/10km/h)
-	Direction  uint16          `json:"direction"`  // 方向，0-359，正北为 0，顺时针
-	Time       string          `json:"time"`       // YY-MM-DD-hh-mm-ss(GMT+8 时间)
-	Expand     []Msg0200Expand `json:"expand"`     // 附加参数
+	Header     *MsgHeader     `json:"header"`
+	AlarmSign  uint32         `json:"alarmSign"`  // 报警标志位
+	StatusSign uint32         `json:"statusSign"` // 状态标志位
+	Latitude   uint32         `json:"latitude"`   // 纬度，以度为单位的纬度值乘以10的6次方，精确到百万分之一度
+	Longitude  uint32         `json:"longitude"`  // 精度，以度为单位的经度值乘以10的6次方，精确到百万分之一度
+	Altitude   uint16         `json:"altitude"`   // 高程，海拔高度，单位为米(m)
+	Speed      uint16         `json:"speed"`      // 速度，单位为0.1公里每小时(1/10km/h)
+	Direction  uint16         `json:"direction"`  // 方向，0-359，正北为 0，顺时针
+	Time       string         `json:"time"`       // YY-MM-DD-hh-mm-ss(GMT+8 时间)
+	Extra      []Msg0200Extra `json:"extra"`      // 附加参数
 }
 
-type ExpandProcFunc func([]byte) any
+type ExtraProcFunc func([]byte) any
 
 const (
-	MaxExpandFunctions uint32 = 65536
+	MaxExtraFunctions uint32 = 65536
 )
 
 var (
-	expandDecodeFunctions [MaxExpandFunctions]ExpandProcFunc
-	expandEncodeFunctions [MaxExpandFunctions]ExpandProcFunc
+	extraDecodeFunctions [MaxExtraFunctions]ExtraProcFunc
+	extraEncodeFunctions [MaxExtraFunctions]ExtraProcFunc
 )
 
 func init() {
@@ -206,8 +206,8 @@ func init() {
 	//0x65 驾驶员状态监测系统报警信息，定义见表 4-17
 	//0x66 胎压监测系统报警信息，定义见表 4-18
 	//0x67 盲区监测系统报警信息，定义见表 4-2
-	expandDecodeFunctions[ExpandIdAiDSM] = expandAiDSMDecode
-	expandEncodeFunctions[ExpandIdAiDSM] = expandAiDSMEncode
+	extraDecodeFunctions[ExtraIdAiDSM] = extraAiDSMDecode
+	extraEncodeFunctions[ExtraIdAiDSM] = extraAiDSMEncode
 }
 
 func bv(pos uint8) uint16 {
@@ -223,7 +223,7 @@ func cond(c bool, t, f any) any {
 	return f
 }
 
-func expandAiDSMDecode(data []byte) any {
+func extraAiDSMDecode(data []byte) any {
 	if len(data) < 47 {
 		// 不合法的数据
 		// 根据协议规范，
@@ -266,7 +266,7 @@ func expandAiDSMDecode(data []byte) any {
 	return alarm
 }
 
-func expandAiDSMEncode(data []byte) any {
+func extraAiDSMEncode(data []byte) any {
 	return data
 }
 
@@ -290,12 +290,12 @@ func (m *Msg0200) Decode(packet *PacketData) error {
 			// 或者 数据已经越界，不要再继续解码了
 			break
 		}
-		expand := Msg0200Expand{
+		extra := Msg0200Extra{
 			Id:     id,
 			Length: length,
 			//Value: hex.ReadBytes(pkt, &idx, int(length)),
 		}
-		fn := expandDecodeFunctions[id]
+		fn := extraDecodeFunctions[id]
 		if fn != nil {
 			// 通过回调解析
 			data := hex.ReadBytes(pkt, &idx, int(length))
@@ -307,16 +307,16 @@ func (m *Msg0200) Decode(packet *PacketData) error {
 					Uint8("id", id).
 					Uint8("length", length).
 					Str("hex", hex.Byte2Str(data)).
-					Msg("Decode 0x0200 msg expand failed.")
+					Msg("Decode 0x0200 msg extra failed.")
 				continue
 			}
-			expand.Value = value
+			extra.Value = value
 		} else {
 			// 没有处理回调，
 			// 所以直接拿hex-buf
-			expand.Value = hex.ReadBytes(pkt, &idx, int(length))
+			extra.Value = hex.ReadBytes(pkt, &idx, int(length))
 		}
-		m.Expand = append(m.Expand, expand)
+		m.Extra = append(m.Extra, extra)
 	}
 	return nil
 }
@@ -331,11 +331,11 @@ func (m *Msg0200) Encode() (pkt []byte, err error) {
 	pkt = hex.WriteWord(pkt, m.Direction)
 	pkt = hex.WriteBCD(pkt, m.Time)
 
-	for i := 0; i < len(m.Expand); i++ {
-		expand := m.Expand[i]
-		pkt = hex.WriteByte(pkt, expand.Id)
-		pkt = hex.WriteByte(pkt, expand.Length)
-		pkt = hex.WriteBytes(pkt, expand.Value.([]byte))
+	for i := 0; i < len(m.Extra); i++ {
+		extra := m.Extra[i]
+		pkt = hex.WriteByte(pkt, extra.Id)
+		pkt = hex.WriteByte(pkt, extra.Length)
+		pkt = hex.WriteBytes(pkt, extra.Value.([]byte))
 	}
 
 	pkt, err = writeHeader(m, pkt)

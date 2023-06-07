@@ -90,10 +90,10 @@ type DeviceGeoConf struct {
 	Geo                    *geoConf      `yaml:"geo" json:"geo,omitempty"`
 	Location               *locationConf `yaml:"location" json:"location,omitempty"`
 	Drive                  *driveConf    `yaml:"drive" json:"drive,omitempty"`
-	Expand                 []expandConf  `yaml:"expand,flow" json:"expand,omitempty"`
+	Extra                  []extraConf   `yaml:"extra,flow" json:"extra,omitempty"`
 }
 
-type expandConf struct {
+type extraConf struct {
 	Id uint8 `yaml:"id" json:"id,omitempty"`
 	//Length  uint8  `yaml:"length"`// 长度通过 payload 重新计算
 	Value string `yaml:"value" json:"value,omitempty"` // hex数组，注意：是hex数组字符串，每两个字符为一个字节
