@@ -16,7 +16,7 @@ type DeviceCache struct {
 	cacheByPhone map[string]*model.Device
 
 	// 当产生告警时的回调函数
-	hook EventHandler
+	hook StatusChangeHandler
 
 	// 锁
 	mutex *sync.Mutex
@@ -79,12 +79,14 @@ func (cache *DeviceCache) CacheDevice(d *model.Device) {
 	cache.cacheDevice(d)
 }
 
-func (cache *DeviceCache) SetStatusHook(handler EventHandler) {
+func (cache *DeviceCache) SetStatusHook(handler StatusChangeHandler) {
 	cache.hook = handler
 }
 
 func (cache *DeviceCache) UpdateDeviceStatus(d *model.Device, to model.DeviceStatus) {
-	_ = cache.hook(to)
+	if cache.hook != nil {
+		_ = cache.hook(to)
+	}
 
 	d.Status = to
 	cache.CacheDevice(d)

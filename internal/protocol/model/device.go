@@ -1,10 +1,9 @@
 package model
 
 import (
+	"github.com/fakeyanss/jt808-server-go/internal/codec/hex"
 	"net"
 	"time"
-
-	"github.com/fakeyanss/jt808-server-go/internal/codec/hex"
 )
 
 type DeviceStatus int8
@@ -22,16 +21,15 @@ type Device struct {
 	Phone string `json:"phone"` // 默认通过PhoneNumber来索引设备
 
 	// 连接信息
-
-	SessionID   string            `json:"sessionId"`
-	TransProto  TransportProtocol `json:"transProto"`
-	Conn        net.Conn          `json:"-"`
-	Keepalive   time.Duration     `json:"keepalive"`   // 保活时长
-	LastComTime time.Time         `json:"lastComTime"` // 最近一次交互时间
-	Status      DeviceStatus      `json:"status"`
+	ProcResponse func(msg any) error `json:"-"`
+	SessionID    string              `json:"sessionId"`
+	TransProto   TransportProtocol   `json:"transProto"`
+	Conn         net.Conn            `json:"-"`
+	Keepalive    time.Duration       `json:"keepalive"`   // 保活时长
+	LastComTime  time.Time           `json:"lastComTime"` // 最近一次交互时间
+	Status       DeviceStatus        `json:"status"`
 
 	// 设备信息
-
 	VersionDesc     VersionType `json:"versionDesc"`     // jt808协议版本描述, 区分 2011 / 2013 / 2019
 	ProtocolVersion uint8       `json:"protocolVersion"` // jt808协议版本定义, 区分 (2011&2013) / 2019后续版本修订
 	AuthCode        string      `json:"authCode"`
@@ -40,6 +38,7 @@ type Device struct {
 }
 
 func NewDevice(in *Msg0100, session *Session) *Device {
+
 	return &Device{
 		ID:              in.DeviceID,
 		Plate:           in.PlateNumber,

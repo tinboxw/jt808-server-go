@@ -12,8 +12,8 @@ import (
 type Msg0104 struct {
 	Header             *MsgHeader    `json:"header"`
 	AnswerSerialNumber uint16        `json:"answerSerialNumber"` // 应答流水号，对应平台消息的流水号
-	AnswerParamCnt     uint8         `json:"answerParamCnt"`     // 应答参数个数
-	Parameters         *DeviceParams `json:"parameters"`         // 参数项列表
+	AnswerParamCnt     uint8         `json:"answerSettingsCnt"`  // 应答参数个数
+	Parameters         *DeviceParams `json:"settings"`           // 参数项列表
 }
 
 func (m *Msg0104) Decode(packet *PacketData) error {

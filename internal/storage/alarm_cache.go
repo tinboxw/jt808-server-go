@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/fakeyanss/jt808-server-go/internal/protocol/model"
 	"github.com/pkg/errors"
 	"sync"
 )
@@ -13,7 +14,7 @@ type DeviceAlarmMsgCache struct {
 	cacheByPhone map[string]any
 
 	// 当产生告警时的回调函数
-	hook EventHandler
+	hook ReportAlarmMsgHandler
 
 	// 锁
 	mutex *sync.Mutex
@@ -32,7 +33,7 @@ func GetDeviceAlarmMsgCache() *DeviceAlarmMsgCache {
 	return alarmMsgCacheSingleton
 }
 
-func (cache *DeviceAlarmMsgCache) SetAlarmMsgHook(handler EventHandler) {
+func (cache *DeviceAlarmMsgCache) SetAlarmMsgHook(handler ReportAlarmMsgHandler) {
 	cache.hook = handler
 }
 
@@ -45,12 +46,14 @@ func (cache *DeviceAlarmMsgCache) GetDeviceAlarmMsgByPhone(phone string) (any, e
 	return nil, ErrDeviceAlarmMsgNotFound
 }
 
-func (cache *DeviceAlarmMsgCache) CacheDeviceAlarmMsg(phone string, msg any) {
+func (cache *DeviceAlarmMsgCache) CacheDeviceAlarmMsg(phone string, msg *model.AlarmMsg) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
 	// 回调
-	_ = cache.hook(msg)
+	if cache.hook != nil {
+		_ = cache.hook(msg)
+	}
 
 	// 保存
 	cache.cacheByPhone[phone] = msg

@@ -29,7 +29,7 @@ func (h *MsgHeader) Decode(pkt []byte) error {
 
 	h.MsgID = hex.ReadWord(pkt, &idx) // 消息id [0,2)位
 
-	//fmt.Printf("Recv RawMsgID: 0x%04x\n", h.MsgID)
+	// fmt.Printf("Recv RawMsgID: 0x%04x\n", h.MsgID)
 
 	h.Attr = &MsgBodyAttr{}
 	err := h.Attr.Decode(hex.ReadWord(pkt, &idx)) // 消息体属性 [2,4)位
@@ -215,6 +215,7 @@ func GenMsgHeader(d *Device, msgID, serialNumber uint16) *MsgHeader {
 			PacketFragmented: 0,
 			VersionSign:      versionDecode(d.VersionDesc),
 			Extra:            0,
+			VersionDesc:      d.VersionDesc,
 		},
 		ProtocolVersion: d.ProtocolVersion,
 		PhoneNumber:     d.Phone,

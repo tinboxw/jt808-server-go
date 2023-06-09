@@ -12,6 +12,26 @@ type Msg0001 struct {
 	Result             uint8      `json:"result"`             // 1位，结果，0成功/确认，1失败，2消息有误，3不支持
 }
 
+func Msg0001Result2Str(res uint8) string {
+	// 1位，结果，0成功/确认，1失败，2消息有误，3不支持
+	switch res {
+	case 0:
+		return "success"
+	case 1:
+		return "failed"
+	case 2:
+		return "invalid parameters"
+	case 3:
+		return "unsupported"
+	}
+
+	return "unknown"
+}
+
+func (m *Msg0001) Result2Str() string {
+	return Msg0001Result2Str(m.Result)
+}
+
 func (m *Msg0001) Decode(packet *PacketData) error {
 	m.Header = packet.Header
 	pkt, idx := packet.Body, 0

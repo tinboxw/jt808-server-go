@@ -14,6 +14,8 @@ const (
 type TransportProtocol string
 
 type (
+	ProcResponseCallBackKey struct{}
+
 	SessionCtxKey struct{} // 定义全局session context key
 
 	FrameCtxKey struct{}
@@ -28,6 +30,8 @@ type (
 
 	PacketEncodeCtxKey struct{}
 )
+
+type ProcResponseFn func(phone string, ansMsgId uint16, ansSN uint16, rsp any) error
 
 type Session struct {
 	ID           string // remote addr

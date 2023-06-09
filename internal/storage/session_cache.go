@@ -38,7 +38,9 @@ func getSessionCache() *SessionCache {
 func monitorSessionCnt() {
 	routines.GoSafe(func() {
 		for {
-			log.Debug().Int("total_conn_cnt", countSession()).Msg("Monitoring total conn count")
+			log.Debug().
+				Int("totalConnSessions", countSession()).
+				Msg("Monitoring total conn count")
 			time.Sleep(monitorSessionCntInterval)
 		}
 	})

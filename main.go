@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/fakeyanss/jt808-server-go/wrapper"
@@ -41,7 +42,7 @@ func main() {
 		fmt.Println(banner)
 	}
 
-	//serv := server.NewTCPServer()
+	// serv := server.NewTCPServer()
 	serv := wrapper.New()
 	addr := ":" + cfg.Server.Port.TCPPort
 	err := serv.Listen(addr)
@@ -125,6 +126,63 @@ func main() {
 			Parameters: &params,
 		}
 		serv.Send(session.ID, &msg)
+	})
+
+	router.GET("/device/:phone/params/v2", func(c *gin.Context) {
+		phone := c.Param("phone")
+		device, err := cache.GetDeviceByPhone(phone)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+			return
+		}
+		session, err := storage.GetSession(device.SessionID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		}
+
+		header := model.GenMsgHeader(device, 0x8104, session.GetNextSerialNum())
+		msg := model.Msg8104{
+			Header: header,
+		}
+
+		serv.SendV2(device.Phone, &msg, func(m any) error {
+			rsp := m.(*model.Msg0104)
+			settings, err := json.Marshal(rsp.Parameters)
+
+			log.Debug().
+				Msgf("执行0x8104消息返回结果：%s => code:%v, res:%s", rsp.GetHeader().PhoneNumber, err, settings)
+
+			return nil
+		})
+	})
+
+	router.PUT("/device/:phone/params/v2", func(c *gin.Context) {
+		phone := c.Param("phone")
+		params := model.DeviceParams{}
+		if err := c.ShouldBind(&params); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		}
+		device, err := cache.GetDeviceByPhone(phone)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+			return
+		}
+		session, err := storage.GetSession(device.SessionID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		}
+		header := model.GenMsgHeader(device, 0x8103, session.GetNextSerialNum())
+		msg := model.Msg8103{
+			Header:     header,
+			Parameters: &params,
+		}
+
+		serv.SendV2(device.Phone, &msg, func(m any) error {
+			rsp := m.(*model.Msg0001)
+			log.Debug().
+				Msgf("执行0x8103消息返回结果：%s", rsp.Result2Str())
+			return nil
+		})
 	})
 
 	httpAddr := ":" + cfg.Server.Port.HTTPPort

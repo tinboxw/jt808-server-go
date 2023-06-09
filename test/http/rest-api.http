@@ -1,0 +1,70 @@
+
+###获取设备列表
+GET http://127.0.0.1:8008/device
+Accept: application/json
+
+
+###获取参数
+GET http://127.0.0.1:8008/device/00000000013013870303/params/v2
+
+###设置参数
+PUT http://127.0.0.1:8008/device/00000000013013870303/params/v2
+Content-Type: application/json
+
+{ "settings": [
+  {"id": 1, "value": 60, "desc": "0x0001, 终端心跳发送间隔，单位为秒（s）"},
+  {"id":19, "value":"192.168.3.159:8080", "desc":"0x0013, jt808-2013:主服务器地址,IP或域名; jt808-2019:主服务器地址,IP或域名,以冒号分割主机和端口,多个服务器使用分号分割"},
+  {"id":23, "value":"192.168.3.154:8080", "desc": "0x0017, jt808-2013:主服务器地址,IP或域名; jt808-2019:主服务器地址,IP或域名,以冒号分割主机和端口,多个服务器使用分号分割"},
+  {"id":24,"value": 8080, "desc": "0x0018, jt808-2013:服务器tcp端口；jt808-2019：不开放该字段，使用0x0013/0x0017中端口"},
+  {"id":25,"value": 8080, "desc": "0x0019, jt808-2013:服务器udp端口；jt808-2019：不开放该字段，使用0x0013/0x0017中端口"},
+  {"id":131,"value": "渝AD8H22", "desc": "0x0083, 公安交通管理部门颁发的机动车号牌"},
+  {"id":132,"value": 2, "desc": "0x0084, 车牌颜色，按照 JT/T415-2006 的 5.4.12。01-蓝色;02-黄色;03-黑色;04-白色;05-绿色;09-其他;91-农黄色;92-农绿色;93-黄绿色;94-渐变绿"},
+  {
+    "id":62309, "desc": "0xF365, DSM设置,不进行修改时字段都应该赋值为0xFF/0xFFFF/0xFFFFFFFF",
+    "value": {
+      "alarmSpeedThreshold":0,
+      "alarmVolume":6,
+      "proactivePhotoStrategy":255,
+      "proactivePhotoInterval":65535,
+      "proactivePhotoDistanceInterval":65535,
+      "proactivePhotoCount":255,
+      "proactivePhotoIntervalTime":255,
+      "photoResolution":255,
+      "videoResolution":255,
+      "alarmEnabled":4294967295,
+      "eventEnabled":4294967295,
+      "smokingAlarmInterval":65535,
+      "phoneCallAlarmInterval":65535,
+      "reservedField1":0,
+      "reservedField2":0,
+      "reservedField3":0,
+      "fatigueDrivingSpeedThreshold":255,
+      "fatigueDrivingVideoRecordingTime":255,
+      "fatigueDrivingPhotoCount":255,
+      "fatigueDrivingPhotoInterval":255,
+      "phoneCallAlarmSpeedThreshold":5,
+      "phoneCallAlarmVideoRecordingTime":255,
+      "phoneCallDriverFacePhotoCount":255,
+      "phoneCallDriverFaceFeatureInterval":255,
+      "smokingAlarmSpeedThreshold":255,
+      "smokingAlarmVideoRecordingTime":255,
+      "smokingAlarmDriverFacePhotoCount":255,
+      "smokingAlarmDriverFacePhotoInterval":255,
+      "distractedDrivingSpeedThreshold":255,
+      "distractedDrivingVideoRecordingTime":255,
+      "distractedDrivingPhotoCount":255,
+      "distractedDrivingPhotoInterval":255,
+      "abnormalDrivingSpeedThreshold":255,
+      "abnormalDrivingVideoRecordingTime":255,
+      "abnormalDrivingSnapPhotoCount":255,
+      "abnormalDrivingSnapPhotoInterval":255,
+      "driverIdentificationTrigger":255,
+      "reservedField4":0,
+      "reservedField5":0
+    }
+  }
+]
+}
+
+
+

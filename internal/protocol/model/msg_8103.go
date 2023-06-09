@@ -9,8 +9,8 @@ import (
 // 设置终端参数
 type Msg8103 struct {
 	Header     *MsgHeader    `json:"header"`
-	ParamCnt   uint8         `json:"paramCnt"`   // 参数个数
-	Parameters *DeviceParams `json:"parameters"` // 参数项列表
+	ParamCnt   uint8         `json:"total"`    // 参数个数
+	Parameters *DeviceParams `json:"settings"` // 参数项列表
 }
 
 // client接收到消息，解析为结构体

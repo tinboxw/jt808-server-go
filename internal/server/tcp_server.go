@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -18,14 +17,16 @@ import (
 
 type TCPServer struct {
 	listener net.Listener
+	Sender   *protocol.Sender
 
 	// sessions map[string]*model.Session
-	mutex *sync.Mutex
+	// mutex *sync.Mutex
 }
 
 func NewTCPServer() *TCPServer {
 	return &TCPServer{
-		mutex: &sync.Mutex{},
+		Sender: protocol.NewSender(),
+		// mutex: &sync.Mutex{},
 		// sessions: make(map[string]*model.Session),
 	}
 }
@@ -41,6 +42,9 @@ func (serv *TCPServer) Listen(addr string) error {
 }
 
 func (serv *TCPServer) Start() {
+	// 启动sender
+	routines.GoSafe(func() { serv.Sender.Run(context.Background()) })
+
 	for {
 		conn, err := serv.listener.Accept()
 		if err != nil {
@@ -67,21 +71,21 @@ func (serv *TCPServer) Stop() {
 // 将conn封装为逻辑session
 func (serv *TCPServer) accept(conn net.Conn) *model.Session {
 	remoteAddr := conn.RemoteAddr().String()
-	serv.mutex.Lock()
+	// serv.mutex.Lock()
 	session := &model.Session{
 		Conn: conn,
 		ID:   remoteAddr, // using remote addr default
 	}
 	// serv.sessions[remoteAddr] = session
 	storage.StoreSession(session)
-	serv.mutex.Unlock()
+	// serv.mutex.Unlock()
 
 	return session
 }
 
 func (serv *TCPServer) remove(session *model.Session) {
-	serv.mutex.Lock()
-	defer serv.mutex.Unlock()
+	// serv.mutex.Lock()
+	// defer serv.mutex.Unlock()
 
 	session.Conn.Close()
 	storage.ClearSession(session.ID)
@@ -98,6 +102,11 @@ func (serv *TCPServer) serve(session *model.Session) {
 	for {
 		// 记录value ctx
 		ctx := context.WithValue(context.Background(), model.SessionCtxKey{}, session)
+		// 将回调加进去
+		// 嗨，难受的写法
+		ctx = context.WithValue(ctx,
+			model.ProcResponseCallBackKey{},
+			model.ProcResponseFn(serv.Sender.ProcResponse))
 
 		err := pg.ProcessConnRead(ctx)
 
@@ -145,4 +154,24 @@ func (serv *TCPServer) Send(id string, smsg any) {
 	}
 
 	log.Error().Err(err).Str("device", id).Msg("Failed to send jtmsg to device")
+}
+
+// SendV2
+// 异步发送消息
+// 并在异步状态下缓存消息，等待响应消息并回调
+func (serv *TCPServer) SendV2(phone string, smsg any, rspFn func(any) error) error {
+	msg := smsg.(model.JT808Msg)
+
+	key := &protocol.SenderKey{
+		Phone:        phone,
+		MsgId:        msg.GetHeader().MsgID,
+		SerialNumber: msg.GetHeader().SerialNumber,
+	}
+	value := &protocol.SenderValue{
+		Phone:            phone,
+		Msg:              msg,
+		ResponseCallBack: rspFn,
+	}
+
+	return serv.Sender.Append(key, value)
 }

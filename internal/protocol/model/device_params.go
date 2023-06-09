@@ -1,11 +1,12 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
-	"sort"
-
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"reflect"
+	"sort"
 
 	"github.com/fakeyanss/jt808-server-go/internal/codec/hex"
 )
@@ -18,8 +19,8 @@ var (
 
 type DeviceParams struct {
 	DevicePhone string       `json:"-"`        // 关联device phone
-	ParamCnt    uint8        `json:"paramCnt"` // 参数项个数
-	Params      []*ParamData `json:"params"`   // 参数项列表
+	ParamCnt    uint8        `json:"total"`    // 参数项个数
+	Params      []*ParamData `json:"settings"` // 参数项列表
 }
 
 func (p *DeviceParams) Decode(phone string, cnt uint8, pkt []byte) error {
@@ -39,6 +40,7 @@ func (p *DeviceParams) Decode(phone string, cnt uint8, pkt []byte) error {
 }
 
 func (p *DeviceParams) Encode() (pkt []byte, err error) {
+	p.ParamCnt = uint8(len(p.Params))
 	pkt = hex.WriteByte(pkt, p.ParamCnt)
 	for _, arg := range p.Params {
 		paramBytes, err := arg.Encode()
@@ -75,9 +77,12 @@ func (p *DeviceParams) Update(newParams *DeviceParams) {
 }
 
 type ParamData struct {
-	ParamID    uint32 `json:"paramId"`    // 参数ID
-	ParamLen   uint8  `json:"paramLen"`   // 参数长度
-	ParamValue any    `json:"paramValue"` // 参数值
+	ParamID  uint32 `json:"id"`     // 参数ID
+	ParamLen uint8  `json:"length"` // 参数长度
+
+	// SettingsAiDSM
+	ParamValue any    `json:"value"` // 参数值
+	ParamDesc  string `json:"desc"`  // 参数说明
 }
 
 func (p *ParamData) Decode(pkt []byte, idx *int) error {
@@ -99,7 +104,10 @@ func (p *ParamData) Encode() (pkt []byte, err error) {
 		pkt = hex.WriteBytes(pkt, value)
 		return pkt, nil
 	}
-	log.Warn().Str("ParamID", fmt.Sprintf("0x%04x", p.ParamID)).Err(ErrParamIDNotSupportted).Msg("skip it")
+	log.Warn().
+		Str("ParamID", fmt.Sprintf("0x%04x", p.ParamID)).
+		Err(ErrParamIDNotSupportted).
+		Msg("skip it")
 	return nil, ErrParamIDNotSupportted
 }
 
@@ -150,6 +158,66 @@ func any2uint32(a any) uint32 {
 
 func writeDoubleWordAny(pkt []byte, num any) []byte {
 	return hex.WriteDoubleWord(pkt, any2uint32(num))
+}
+
+// []byte -> struct
+func decodeDsm(b []byte, idx *int, paramLen int) any {
+	dsm := &SettingsAiDSM{}
+
+	// 遍历结构体
+	t := reflect.TypeOf(*dsm)
+	v := reflect.ValueOf(dsm).Elem()
+	for k := 0; k < t.NumField(); k++ {
+		field := v.Field(k)
+		if !field.CanSet() {
+			continue
+		}
+		switch field.Type().Size() {
+		case 1:
+			field.Set(reflect.ValueOf(hex.ReadByte(b, idx)))
+			break
+		case 2:
+			field.Set(reflect.ValueOf(hex.ReadWord(b, idx)))
+			break
+		case 4:
+			field.Set(reflect.ValueOf(hex.ReadDoubleWord(b, idx)))
+			break
+		}
+	}
+	return &dsm
+}
+
+// struct -> []byte
+func encodeDsm(a any) (pkt []byte) {
+	data, _ := json.Marshal(a)
+
+	dsm := &SettingsAiDSM{}
+	err := json.Unmarshal(data, dsm)
+	if err != nil {
+		return
+	}
+
+	// 遍历结构体
+	t := reflect.TypeOf(*dsm)
+	v := reflect.ValueOf(*dsm)
+	for k := 0; k < t.NumField(); k++ {
+		field := v.Field(k)
+		value := field.Interface()
+
+		switch field.Type().Size() {
+		case 1:
+			pkt = writeByteAny(pkt, value)
+			break
+		case 2:
+			pkt = writeWordAny(pkt, value)
+			break
+		case 4:
+			pkt = writeDoubleWordAny(pkt, value)
+			break
+		}
+	}
+
+	return
 }
 
 var (
@@ -323,6 +391,7 @@ var argTable = map[uint32]*paramFn{
 	// 公安交通管理部门颁发的机动车号牌
 	0x0083: {decode: decodeGBK, encode: encodeGBK},
 	// 车牌颜色，按照JT415-2006的5.4.12
+	// 01-蓝色;02-黄色;03-黑色;04-白色;05-绿色;09-其他;91-农黄色;92-农绿色;93-黄绿色;94-渐变绿
 	0x0084: {decode: decodeByte, encode: encodeByte},
 	// GNSS定位模式，定义如下：
 	//   bit0，0:禁用GPS定位，1:启用 GPS 定位;
@@ -393,4 +462,279 @@ var argTable = map[uint32]*paramFn{
 	0x007B: {decode: decodeBytes, encode: encodeBytes},
 	// 终端休眠唤醒模式设置
 	0x007C: {decode: decodeBytes, encode: encodeBytes},
+
+	// ai - dsm
+	0xF365: {decode: decodeDsm, encode: encodeDsm},
+}
+
+// SettingsAiDSM
+// 参考苏标规范4.3.1章节设置
+// ID 为 SettingsIdAiDSM
+type SettingsAiDSM struct {
+	// 报警判断速度阈值
+	// BYTE
+	// 单位 km/h，取值范围 0~60，默认值 30。表示当车速
+	// 高于此阈值才使能报警功能
+	// 0xFF 表示不修改此参数
+	AlarmSpeedThreshold uint8 `json:"alarmSpeedThreshold"`
+
+	// 报警提示音量
+	// BYTE
+	// 0~8，8 最大，0 静音，默认值 6
+	// 0xFF 表示不修改参数
+	AlarmVolume uint8 `json:"alarmVolume"`
+
+	// 主动拍照策略
+	// BYTE
+	// 0x00：不开启
+	// 0x01：定时拍照
+	// 0x02：定距拍照
+	// 0x03：插卡触发
+	// 0x04：保留
+	// 默认值 0x00，
+	// 0xFF 表示不修改参数
+	ProactivePhotoStrategy uint8 `json:"proactivePhotoStrategy"`
+
+	// 主动定时拍照时间间隔
+	// 单位秒，取值范围 0~60000，默认值 3600
+	// 0 表示不抓拍，0xFFFF 表示不修改参数
+	// 主动拍照策略为 01 时有效。
+	ProactivePhotoInterval uint16 `json:"proactivePhotoInterval"`
+
+	// 主动定距拍照距离间隔
+	// WORD
+	// 单位米，取值范围 0~60000，默认值 200
+	// 0 表示不抓拍，0xFFFF 表示不修改参数
+	// 主动拍照策略为 02 时有效。
+	ProactivePhotoDistanceInterval uint16 `json:"proactivePhotoDistanceInterval"`
+
+	// 单次主动拍照张数
+	// BYTE
+	// 取值范围 1-10。默认值 3，
+	// 0xFF 表示不修改参数
+	ProactivePhotoCount uint8 `json:"proactivePhotoCount"`
+
+	// 单次主动拍照时间间隔
+	// BYTE
+	// 单位 100ms，取值范围 1~5，默认值 2，
+	// 0xFF 表示不修改参数
+	ProactivePhotoIntervalTime uint8 `json:"proactivePhotoIntervalTime"`
+
+	// 拍照分辨率
+	// BYTE
+	// 0x01：352×288
+	// 0x02：704×288
+	// 0x03：704×576
+	// 0x04：640×480
+	// 0x05：1280×720
+	// 0x06：1920×1080
+	// 默认值 0x01，
+	// 0xFF 表示不修改参数，
+	// 该参数也适用于报警触发拍照分辨率。
+	PhotoResolution uint8 `json:"photoResolution"`
+
+	// 视频录制分辨率
+	// BYTE
+	// 0x01：CIF
+	// 0x02：HD1
+	// 0x03：D1
+	// 0x04：WD1
+	// 0x05：VGA
+	// 0x06：720P
+	// 0x07：1080P
+	// 默认值 0x01
+	// 0xFF 表示不修改参数
+	// 该参数也适用于报警触发视频分辨率
+	VideoResolution uint8 `json:"videoResolution"`
+
+	// 报警使能
+	// DWORD
+	// 报警使能位 0：关闭 1：打开
+	// bit0：疲劳驾驶一级报警
+	// bit1：疲劳驾驶二级报警
+	// bit2：接打电话一级报警
+	// bit3：接打电话二级报警
+	// bit4：抽烟一级报警
+	// bit5：抽烟二级报警
+	// bit6：分神驾驶一级报警
+	// bit7：分神驾驶二级报警
+	// bit8：驾驶员异常一级报警
+	// bit9：驾驶员异常二级报警
+	// bit10~bit29：用户自定义
+	// bit30~bit31：保留
+	// 默认值 0x000001FF
+	// 0xFFFFFFFF 表示不修改参数
+	AlarmEnabled uint32 `json:"alarmEnabled"`
+
+	// 事件使能
+	// DWORD
+	// 事件使能位 0：关闭 1：打开
+	// bit0：驾驶员更换事件
+	// bit1：主动拍照事件
+	// bit2~bit29：用户自定义
+	// bit30~bit31：保留
+	// 默认值 0x00000003
+	// 0xFFFFFFFF 表示不修改参数
+	EventEnabled uint32 `json:"eventEnabled"`
+
+	// 吸烟报警判断时间间隔
+	// WORD
+	// 单位秒，取值范围 0~3600。默认值为 180。表示在此
+	// 时间间隔内仅触发一次吸烟报警。
+	// 0xFFFF 表示不修改此参数
+	SmokingAlarmInterval uint16 `json:"smokingAlarmInterval"`
+
+	// 接打电话报警判断时间间隔
+	// WORD
+	// 单位秒，取值范围 0~3600。默认值为 120。表示在此
+	// 时间间隔内仅触发一次接打电话报警。
+	// 0xFFFF 表示不修改此参数
+	PhoneCallAlarmInterval uint16 `json:"phoneCallAlarmInterval"`
+
+	// 预留字段
+	// BYTE[3] 保留字段
+	ReservedField1 uint8 `json:"reservedField1"`
+	ReservedField2 uint8 `json:"reservedField2"`
+	ReservedField3 uint8 `json:"reservedField3"`
+
+	// 疲劳驾驶报警分级速度阈值
+	// BYTE
+	// 单位 km/h，取值范围 0~220，默认值 50。表示触发报
+	// 警时车速高于阈值为二级报警，否则为一级报警
+	// 0xFF 表示不修改参数
+	FatigueDrivingSpeedThreshold uint8 `json:"fatigueDrivingSpeedThreshold"`
+
+	// 疲劳驾驶报警前后视频录制时间
+	// BYTE
+	// 单位秒，取值范围 0-60，默认值 5
+	// 0 表示不录像，0xFF 表示不修改参数
+	FatigueDrivingVideoRecordingTime uint8 `json:"fatigueDrivingVideoRecordingTime"`
+
+	// 疲劳驾驶报警拍照张数
+	// BYTE
+	// 取值范围 0-10，缺省值 3
+	// 0 表示不抓拍，0xFF 表示不修改参数
+	FatigueDrivingPhotoCount uint8 `json:"fatigueDrivingPhotoCount"`
+
+	// 疲劳驾驶报警拍照间隔时间
+	// BYTE
+	// 单位 100ms， 取值范围 1~5，默认 2，
+	// 0xFF 表示不修改参数
+	FatigueDrivingPhotoInterval uint8 `json:"fatigueDrivingPhotoInterval"`
+
+	// 接打电话报警分级速度阈值
+	// BYTE
+	// 单位 km/h，取值范围 0~220，默认值 50。表示触发报
+	// 警时车速高于阈值为二级报警，否则为一级报警
+	// 0xFF 表示不修改参数
+	PhoneCallAlarmSpeedThreshold uint8 `json:"phoneCallAlarmSpeedThreshold"`
+
+	// 接打电话报警前后视频录制时间
+	// BYTE
+	// 单位秒，取值范围 0-60，默认值 5，
+	// 0 表示不录像，0xFF 表示不修改参数
+	PhoneCallAlarmVideoRecordingTime uint8 `json:"phoneCallAlarmVideoRecordingTime"`
+
+	// 接打电话报警拍驾驶员面部特征照片张数
+	// BYTE
+	// 取值范围 1-10，默认值 3
+	// 0 表示不抓拍，0xFF 表示不修改参数
+	PhoneCallDriverFacePhotoCount uint8 `json:"phoneCallDriverFacePhotoCount"`
+
+	// 接打电话报警拍驾驶员面部特征照片间隔时间
+	// BYTE
+	// 单位 100ms， 取值范围 1~5，默认值 2
+	// 0xFF 表示不修改参数
+	PhoneCallDriverFaceFeatureInterval uint8 `json:"phoneCallDriverFaceFeatureInterval"`
+
+	// 抽烟报警分级车速阈值
+	// BYTE
+	// 单位 km/h，取值范围 0~220，默认值 50。表示触发报
+	// 警时车速高于阈值为二级报警，否则为一级报警
+	// 0xFF 表示不修改参数
+	SmokingAlarmSpeedThreshold uint8 `json:"smokingAlarmSpeedThreshold"`
+
+	// 抽烟报警前后视频录制时间
+	// BYTE
+	// 单位秒，取值范围 0-60，默认值 5
+	// 0 表示不录像，0xFF 表示不修改参数
+	SmokingAlarmVideoRecordingTime uint8 `json:"smokingAlarmVideoRecordingTime"`
+
+	// 抽烟报警拍驾驶员面部特征照片张数
+	// BYTE
+	// 取值范围 1-10，默认值 3
+	// 0 表示不抓拍，0xFF 表示不修改参数
+	SmokingAlarmDriverFacePhotoCount uint8 `json:"smokingAlarmDriverFacePhotoCount"`
+
+	// 抽烟报警拍驾驶员面部特征照片间隔时间
+	// BYTE
+	// 单位 100ms， 取值范围 1~5，默认 2
+	// 0xFF 表示不修改参数
+	SmokingAlarmDriverFacePhotoInterval uint8 `json:"smokingAlarmDriverFacePhotoInterval"`
+
+	// 分神驾驶报警分级车速阈值
+	// BYTE
+	// 单位 km/h，取值范围 0~220，默认值 50。表示触发报
+	// 警时车速高于阈值为二级报警，否则为一级报警
+	// 0xFF 表示不修改参数
+	DistractedDrivingSpeedThreshold uint8 `json:"distractedDrivingSpeedThreshold"`
+
+	// 分神驾驶报警前后视频录制时间
+	// BYTE
+	// 单位秒，取值范围 0-60，默认值 5
+	// 0 表示不录像，0xFF 表示不修改参数
+	DistractedDrivingVideoRecordingTime uint8 `json:"distractedDrivingVideoRecordingTime"`
+
+	// 分神驾驶报警拍照张数
+	// BYTE
+	// 取值范围 1-10，默认值 3
+	// 0 表示不抓拍，0xFF 表示不修改参数
+	DistractedDrivingPhotoCount uint8 `json:"distractedDrivingPhotoCount"`
+
+	// 分神驾驶报警拍照间隔时间
+	// BYTE
+	// 单位 100ms， 取值范围 1~5，默认 2
+	// 0xFF 表示不修改参数
+	DistractedDrivingPhotoInterval uint8 `json:"distractedDrivingPhotoInterval"`
+
+	// 驾驶行为异常分级速度阈值
+	// BYTE
+	// 单位 km/h，取值范围 0~220，默认值 50。表示触发报
+	// 警时车速高于阈值为二级报警，否则为一级报警
+	// 0xFF 表示不修改参数
+	AbnormalDrivingSpeedThreshold uint8 `json:"abnormalDrivingSpeedThreshold"`
+
+	// 驾驶行为异常视频录制时间
+	// BYTE
+	// 单位秒，取值范围 0-60，默认值 5
+	// 0 表示不录像，0xFF 表示不修改参数
+	AbnormalDrivingVideoRecordingTime uint8 `json:"abnormalDrivingVideoRecordingTime"`
+
+	// 驾驶行为异常抓拍照片张数
+	// BYTE
+	// 取值范围 1-10，默认值 3
+	// 0 表示不抓拍，0xFF 表示不修改参数
+	AbnormalDrivingSnapPhotoCount uint8 `json:"abnormalDrivingSnapPhotoCount"`
+
+	// 驾驶行为异常拍照间隔
+	// BYTE
+	// 单位 100ms， 取值范围 1~5，默认 2
+	// 0xFF 表示不修改参数
+	AbnormalDrivingSnapPhotoInterval uint8 `json:"abnormalDrivingSnapPhotoInterval"`
+
+	// 驾驶员身份识别触发
+	// BYTE
+	// 0x00：不开启
+	// 0x01：定时触发
+	// 0x02：定距触发
+	// 0x03：插卡开始行驶触发
+	// 0x04：保留
+	// 默认值为 0x01
+	// 0xFF 表示不修改参数
+	DriverIdentificationTrigger uint8 `json:"driverIdentificationTrigger"`
+
+	// 保留字段
+	// BYTE[2]
+	ReservedField4 uint8 `json:"reservedField4"`
+	ReservedField5 uint8 `json:"reservedField5"`
 }

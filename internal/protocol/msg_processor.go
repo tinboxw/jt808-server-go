@@ -37,9 +37,9 @@ type action struct {
 	genData func() *model.ProcessData                       // 定义生成消息的类型。由于go不支持type作为参数，所以这里直接初始化结构体
 	process func(context.Context, *model.ProcessData) error // 处理消息的逻辑。可以设置消息字段、根据消息做相应处理逻辑
 
-	//prepare *model.JT808Msg
-	//process func (ctx context.Context, )
-	//post *model.JT808Msg
+	// prepare *model.JT808Msg
+	// process func (ctx context.Context, )
+	// post *model.JT808Msg
 
 }
 
@@ -50,6 +50,7 @@ func initProcessOption() processOptions {
 		genData: func() *model.ProcessData {
 			return &model.ProcessData{Incoming: &model.Msg0001{}} // 无需回复
 		},
+		process: processMsg0001,
 	}
 	options[0x0002] = &action{ // 心跳
 		genData: func() *model.ProcessData {
@@ -79,6 +80,7 @@ func initProcessOption() processOptions {
 		genData: func() *model.ProcessData {
 			return &model.ProcessData{Incoming: &model.Msg0104{}} // 无需回复
 		},
+		process: processMsg0104,
 	}
 	options[0x0200] = &action{ // 位置信息上报
 		genData: func() *model.ProcessData {
@@ -176,8 +178,8 @@ func (mp *JT808MsgProcessor) Process(ctx context.Context, pkt *model.PacketData)
 		}
 		// for debug
 		log.Debug().
-			Str("sessionId", session.ID).
-			Str("rawMsgID", fmt.Sprintf("0x%04x", in.GetHeader().MsgID)).
+			Str("RessionId", session.ID).
+			Str("RawMsgID", fmt.Sprintf("0x%04x", in.GetHeader().MsgID)).
 			RawJSON("incoming", inJSON).
 			Msg("Received jt808 msg.")
 	}
@@ -237,6 +239,26 @@ func processSegmentPacket(_ context.Context, pkt *model.PacketData) (*model.Proc
 		Result:             model.ResultSuccess,
 	}
 	return &model.ProcessData{Outgoing: outgoingMsg}, nil
+}
+
+// 收到通用应答
+// 根据消息内容，确定平台下发内容是否生效
+func processMsg0001(ctx context.Context, data *model.ProcessData) error {
+	cache := storage.GetDeviceCache()
+	_, err := cache.GetDeviceByPhone(data.Incoming.GetHeader().PhoneNumber)
+
+	// 缓存不存在，说明设备不合法，需要返回错误，让服务层处理关闭
+	if errors.Is(err, storage.ErrDeviceNotFound) {
+		return errors.Wrapf(err, "Fail to find device cache, phoneNumber=%s", data.Incoming.GetHeader().PhoneNumber)
+	}
+
+	msg := data.Incoming.(*model.Msg0001)
+	header := msg.GetHeader()
+
+	fn := ctx.Value(model.ProcResponseCallBackKey{}).(model.ProcResponseFn)
+	_ = fn(header.PhoneNumber, msg.AnswerMessageID, msg.AnswerSerialNumber, msg)
+
+	return nil
 }
 
 // 收到心跳，应刷新终端缓存有效期
@@ -327,7 +349,7 @@ func processMsg0102(_ context.Context, data *model.ProcessData) error {
 		device.AuthCode = in.AuthCode
 		device.IMEI = in.IMEI
 		device.SoftwareVersion = in.SoftwareVersion
-		//cache.CacheDevice(device)
+		// cache.CacheDevice(device)
 		cache.UpdateDeviceStatus(device, model.DeviceStatusOnline)
 	}
 
@@ -346,8 +368,21 @@ func genAuthCode(d *model.Device) string {
 }
 
 // 收到查询终端参数应答，无需回复，可以在这里做一个一个channel write，由其他地方阻塞式read来完成hook功能。
-func processMsg0104(_ context.Context, _ *model.ProcessData) error {
-	// todo: write channel
+func processMsg0104(ctx context.Context, data *model.ProcessData) error {
+	cache := storage.GetDeviceCache()
+	_, err := cache.GetDeviceByPhone(data.Incoming.GetHeader().PhoneNumber)
+
+	// 缓存不存在，说明设备不合法，需要返回错误，让服务层处理关闭
+	if errors.Is(err, storage.ErrDeviceNotFound) {
+		return errors.Wrapf(err, "Fail to find device cache, phoneNumber=%s", data.Incoming.GetHeader().PhoneNumber)
+	}
+
+	msg := data.Incoming.(*model.Msg0104)
+	header := msg.GetHeader()
+
+	fn := ctx.Value(model.ProcResponseCallBackKey{}).(model.ProcResponseFn)
+	_ = fn(header.PhoneNumber, 0x8104 /*专用应答，固定msgid*/, msg.AnswerSerialNumber, msg)
+
 	return nil
 }
 
@@ -370,7 +405,7 @@ func processMsg0200(_ context.Context, data *model.ProcessData) error {
 	}
 
 	if dg.Geo.ACCStatus == 0 { // ACC关闭，设备休眠
-		//device.Status = model.DeviceStatusSleeping
+		// device.Status = model.DeviceStatusSleeping
 		device.LastComTime = time.Now()
 		cache.UpdateDeviceStatus(device, model.DeviceStatusSleeping)
 	}
@@ -384,7 +419,7 @@ func processMsg0200(_ context.Context, data *model.ProcessData) error {
 		switch extra.Id {
 		case model.ExtraIdAiDSM:
 			alarm := storage.GetDeviceAlarmMsgCache()
-			alarm.CacheDeviceAlarmMsg(device.Phone, extra.Value)
+			alarm.CacheDeviceAlarmMsg(device.Phone, extra.Value.(*model.AlarmMsg))
 			break
 		default: // ignore other alarm
 			break
