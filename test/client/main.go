@@ -167,6 +167,11 @@ func main() {
 	fmt.Printf("Start with configuration %v\n", cfgPath)
 	cfg := config.Load(cfgPath)
 
+	remote := os.Getenv("REMOTE")
+	if len(remote) != 0 {
+		cfg.Client.Conn.RemoteAddr = remote
+	}
+
 	logCfg := config.ParseLoggerConfig(cfg.Log)
 	log.Logger = *logger.Configure(logCfg).Logger
 

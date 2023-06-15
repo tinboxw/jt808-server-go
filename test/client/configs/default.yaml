@@ -13,7 +13,7 @@ client:
   name: "jt808-client-go"
   concurrency: 1
   conn:
-    remoteAddr: "localhost:8080"
+    remoteAddr: "localhost:1983"
   device:
     idReg: "[0-9]{20}"
     imeiReg: "[0-9]{15}"
