@@ -1,25 +1,23 @@
-# Build
-# golang:1.19-buster
-FROM golang:1.19-alpine AS build
-ARG GOPROXY=https://goproxy.cn,direct
+FROM golang:1.20 AS build
+ENV GOPROXY https://proxy.golang.com.cn,direct
 WORKDIR /app
-
-RUN apk add \
-  bash \
-  git \
-  make
 
 COPY . .
 
-RUN make prepare compile-client
+RUN set -eux;\
+    mkdir -p output; \
+    go mod tidy;\
+    go build -v -o /app/output/bin/jt808-client-go test/client/main.go; \
+    cp -rf test/client/configs /app/output/.;
+
 
 # Deploy
-
-FROM alpine:latest
+FROM ubuntu:22.04
 
 WORKDIR /app
 
-COPY --from=build /app/output/ /app/
+COPY --from=build /app/output /app/
+
 ENV REMOTE localhost:1983
 
-CMD ["/app/bin/jt808-client-go"]
+CMD ["/app/bin/jt808-client-go", "-c", "/app/configs/default.yaml"]
