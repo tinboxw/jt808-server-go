@@ -54,7 +54,11 @@ clean:
 
 # 构建镜像
 dockerbuild:
-	docker build -f build/Dockerfile -t fakeyanss/jt808-server-go:$(BUILD_COMMIT) .
+	docker build -f build/Dockerfile -t tinbox/jt808-server-go:$(BUILD_COMMIT) -t tinbox/jt808-server-go .
+
+# 构建镜像
+dockerbuild-client:
+	docker build -f build/Dockerfile.client -t tinbox/jt808-client-go:$(BUILD_COMMIT) -t tinbox/jt808-client-go  .
 
 # 统计代码行数
 statline:
