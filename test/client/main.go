@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -166,6 +167,10 @@ func main() {
 	flag.Parse()
 	fmt.Printf("Start with configuration %v\n", cfgPath)
 	cfg := config.Load(cfgPath)
+
+	// 设置工作路径
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	_ = os.Chdir(dir + "/../")
 
 	remote := os.Getenv("REMOTE")
 	if len(remote) != 0 {

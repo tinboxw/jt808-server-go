@@ -12,8 +12,8 @@ log:
 server:
   name: "jt808-server-go"
   port:
-    tcpPort: "8080"
-    udpPort: "8081"
+    tcpPort: "1983"
+    udpPort: "1983"
     httpPort: "8008"
   banner:
     enable: true

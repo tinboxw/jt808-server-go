@@ -90,12 +90,16 @@ type DeviceGeoConf struct {
 	Geo                    *geoConf      `yaml:"geo" json:"geo,omitempty"`
 	Location               *locationConf `yaml:"location" json:"location,omitempty"`
 	Drive                  *driveConf    `yaml:"drive" json:"drive,omitempty"`
-	Extra                  []extraConf   `yaml:"extra,flow" json:"extra,omitempty"`
+	Index                  int           `yaml:"index" json:"index,omitempty"`
+	Extras                 []struct {
+		Extra []extraConf `yaml:"extra,flow" json:"extra,omitempty"`
+	} `yaml:"extras,flow" json:"extras,omitempty"`
+	// Extra                  []extraConf `yaml:"extra,flow" json:"extra,omitempty"`
 }
 
 type extraConf struct {
 	Id uint8 `yaml:"id" json:"id,omitempty"`
-	//Length  uint8  `yaml:"length"`// 长度通过 payload 重新计算
+	// Length  uint8  `yaml:"length"`// 长度通过 payload 重新计算
 	Value string `yaml:"value" json:"value,omitempty"` // hex数组，注意：是hex数组字符串，每两个字符为一个字节
 }
 

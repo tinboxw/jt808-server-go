@@ -158,15 +158,23 @@ func init() {
 func genExtra(conf *config.DeviceGeoConf) []model.Msg0200Extra {
 	var extra []model.Msg0200Extra
 
-	for i := 0; i < len(conf.Extra); i++ {
-		src := conf.Extra[i]
+	k := conf.Index
+	if k >= len(conf.Extras) {
+		// roll index
+		k = 0
+		conf.Index = k
+	} else {
+		conf.Index++
+	}
+
+	for i := 0; i < len(conf.Extras[k].Extra); i++ {
+		src := conf.Extras[i].Extra[i]
 		extra = append(extra, model.Msg0200Extra{
 			Id:     src.Id,
 			Length: uint8(len(src.Value) / 2),
 			Value:  hex.Str2Byte(src.Value),
 		})
 	}
-
 	return extra
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/fakeyanss/jt808-server-go/wrapper"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
@@ -27,6 +28,10 @@ func main() {
 	flag.Parse()
 	fmt.Printf("Start with configuration %v\n", cfgPath)
 	cfg := config.Load(cfgPath)
+
+	// 设置工作路径
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	_ = os.Chdir(dir + "/../")
 
 	logConfig := config.ParseLoggerConfig(cfg.Log)
 	log.Logger = *logger.Configure(logConfig).Logger
