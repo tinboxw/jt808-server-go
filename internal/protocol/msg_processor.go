@@ -304,11 +304,25 @@ func processMsg0100(ctx context.Context, data *model.ProcessData) error {
 	// 车辆已被注册
 	if cache.HasPlate(in.PlateNumber) {
 		out.Result = model.ResCarAlreadyRegister
+		if true {
+			// 这里做了特殊处理
+			// 当出现重复注册时，将已注册的authcode返回
+			// 正常逻辑不应该返回authcode
+			device, _ := cache.GetDeviceByPlate(in.PlateNumber)
+			out.AuthCode = genAuthCode(device) // 设置鉴权码
+		}
 		return nil
 	}
 	// 终端已被注册
 	if cache.HasPhone(in.Header.PhoneNumber) {
 		out.Result = model.ResDeviceAlreadyRegister
+		if true {
+			// 这里做了特殊处理
+			// 当出现重复注册时，将已注册的authcode返回
+			// 正常逻辑不应该返回authcode
+			device, _ := cache.GetDeviceByPhone(in.Header.PhoneNumber)
+			out.AuthCode = genAuthCode(device) // 设置鉴权码
+		}
 		return nil
 	}
 

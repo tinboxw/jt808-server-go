@@ -122,6 +122,7 @@ func dialAndSend(cfg *config.Config, cliWg *sync.WaitGroup) {
 	}
 	routines.GoSafe(func() {
 		defer cliWg.Done()
+		log.Debug().Msgf("start tcp client...")
 		cli.Start()
 	})
 
@@ -134,7 +135,9 @@ func dialAndSend(cfg *config.Config, cliWg *sync.WaitGroup) {
 
 		var wg sync.WaitGroup
 		wg.Add(1)
+
 		register(ctx, cli)
+		log.Debug().Msgf("sent register msg done")
 
 		routines.GoSafe(func() {
 			// device status checker
@@ -143,8 +146,10 @@ func dialAndSend(cfg *config.Config, cliWg *sync.WaitGroup) {
 				renewDevice, _ := cache.GetDeviceByPhone(d.Phone)
 				if renewDevice.Status == model.DeviceStatusOnline {
 					wg.Done()
+					log.Debug().Msgf("client is online")
 					return
 				}
+				log.Debug().Msgf("waiting for client online, sleep...")
 				time.Sleep(time.Second)
 			}
 		})
@@ -152,10 +157,12 @@ func dialAndSend(cfg *config.Config, cliWg *sync.WaitGroup) {
 		// should wait for register success, and stop after register failed for a while
 		routines.GoSafe(func() {
 			wg.Wait()
+			log.Debug().Msgf("start keepalive loop...")
 			keepalive(ctx, cli)
 		})
 		routines.GoSafe(func() {
 			wg.Wait()
+			log.Debug().Msgf("start report location msg loop...")
 			reportLocation(ctx, cli)
 		})
 	})
