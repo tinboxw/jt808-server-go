@@ -66,5 +66,35 @@ client:
             value: "0C1DB259020101000000000000016201C38E8906599BFD230530163957040134340000000000230530163953000500"
           - id: 0x31
             value: "1A"
+      - extra:
+          - id: 0x65 # call phone alarm - start
+            value: "0C1DC27D010201000000000000016201C38E8906599BFD230530174844040134340000000000230530174844000500"
+          - id: 0x31
+            value: "1A"
+      - extra:
+          - id: 0x65 # call phone alarm - stop
+            value: "0C1DC27D020201000000000000016201C38E8906599BFD230530174923040134340000000000230530174844000500"
+          - id: 0x31
+            value: "1A"
+      - extra:
+          - id: 0x65 # distracted driving alarm - start
+            value: "0C1DC1AB010401000308000000016201C38E8906599BFD230530174515040134340000000000230530174515000500"
+          - id: 0x31
+            value: "1A"
+      - extra:
+          - id: 0x65 # distracted driving alarm - stop
+            value: "0C1DC1AB020401000308000000016201C38E8906599BFD230530174521040134340000000000230530174515000500"
+          - id: 0x31
+            value: "1A"
+      - extra:
+          - id: 0x65 # driver abnormal alarm - start
+            value: "0C1DC6CB010502000000000000016201C38E8906599BFD230530180707040134340000000000230530180707000500"
+          - id: 0x31
+            value: "1A"
+      - extra:
+          - id: 0x65 # driver abnormal alarm - stop
+            value: "0C1DC6CB020502000000000000016201C38E8906599BFD230530180723040134340000000000230530180707000500"
+          - id: 0x31
+            value: "1A"
       
 
