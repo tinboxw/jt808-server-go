@@ -28,7 +28,7 @@ client:
   deviceGeo:
     locationReportInterval: 5
     geo:
-      accStatusReg: "0|1"
+      accStatusReg: "1"
       locationStatusReg: "0|1"
       latitudeTypeReg: "0|1"
       longitudeTypeReg: "0|1"
