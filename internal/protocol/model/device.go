@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/fakeyanss/jt808-server-go/internal/codec/hex"
+	"github.com/rs/zerolog/log"
 	"net"
 	"time"
 )
@@ -56,6 +57,7 @@ func NewDevice(in *Msg0100, session *Session) *Device {
 
 func (d *Device) ShouldTurnOffline() bool {
 	now := time.Now().UnixMilli()
+	log.Debug().Msgf("now:%d, last:%d, keepalive:%d", now, d.LastComTime.UnixMilli(), d.Keepalive.Milliseconds())
 	return d.Status != DeviceStatusOffline && now > d.Keepalive.Milliseconds()+d.LastComTime.UnixMilli()
 }
 
