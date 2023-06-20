@@ -2,7 +2,9 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"time"
@@ -73,6 +75,11 @@ func (cli *TCPClient) Send(msg model.JT808Msg) {
 	err := pg.ProcessConnWrite(ctx)
 
 	if err == nil {
+		jmsg, _ := json.Marshal(msg)
+		log.Debug().
+			Str("RawMsgID", fmt.Sprintf("0x%04x", msg.GetHeader().MsgID)).
+			RawJSON("incoming", jmsg).
+			Msg("sent jt808 msg to server")
 		return
 	}
 
