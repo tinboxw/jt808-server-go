@@ -29,6 +29,8 @@ build_in_docker(){
     cmd="$cmd -v"
   fi
 
+  cmd="$cmd --type=$BUILD_TYPE"
+
   sudo docker run --rm -v $CODE_DIR:$CODE_DIR \
     -v $CODE_DIR/../intf:$CODE_DIR/../intf \
     -w $CODE_DIR \
@@ -74,15 +76,15 @@ until [ $# -eq 0 ]; do
     -v|--verbose) SHOW_VERBOSE=true; shift 1;;
     -t|--type)
       case "$2" in
-        server) BUILD_ARTIFACT=$BUILD_ARTIFACT_SERVER;;
-        client) BUILD_ARTIFACT=$BUILD_ARTIFACT_CLIENT;;
+        server) BUILD_ARTIFACT=$BUILD_ARTIFACT_SERVER; BUILD_TYPE=server;;
+        client) BUILD_ARTIFACT=$BUILD_ARTIFACT_CLIENT; BUILD_TYPE=client;;
         *) echo " unknown params $1 $2 " && usage && exit 1;;
       esac
       shift  2;;
     --type=*)
       case `echo $1|awk -F= '{print $2}'` in
-        server) BUILD_ARTIFACT=$BUILD_ARTIFACT_SERVER;;
-        client) BUILD_ARTIFACT=$BUILD_ARTIFACT_CLIENT;;
+        server) BUILD_ARTIFACT=$BUILD_ARTIFACT_SERVER; BUILD_TYPE=server;;
+        client) BUILD_ARTIFACT=$BUILD_ARTIFACT_CLIENT; BUILD_TYPE=client;;
         *) echo " unknown params $1 " && usage && exit 1;;
       esac
       shift  1;;
