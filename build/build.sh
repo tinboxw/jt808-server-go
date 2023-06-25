@@ -36,7 +36,7 @@ build_in_docker(){
     -v /etc/localtime:/etc/localtime \
     -v $OUTPUT_DIR:$OUTPUT_DIR \
     golang:1.20 \
-    bash -c "git config --global --add safe.directory '*' && cd builder && $cmd "
+    bash -c "git config --global --add safe.directory '*' && cd build && $cmd "
 
   [ $? != 0 ] && echo "build failed" && exit 1
   echo "use docker container compile done"
