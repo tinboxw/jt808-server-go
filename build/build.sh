@@ -139,6 +139,7 @@ validate_args() {
 make_dirs() {
   $SUDO rm -rf "$DIST_DIR"/bin
   mkdir -p "$DIST_DIR"/bin
+  mkdir -p "$DIST_DIR"/etc
 }
 
 compile() {
@@ -180,7 +181,7 @@ pack() {
   strip "$BUILD_ARTIFACT"
 
   if [ x"$BUILD_ARTIFACT" = x"$BUILD_ARTIFACT_CLIENT"  ];then
-    cp -rf $CODE_DIR/test/client/configs/* "$DIST_DIR"/etc/.
+    cp -rf $CODE_DIR/test/client/configs/* $DIST_DIR/etc/.
   fi
   cp -rf "$BUILD_ARTIFACT" "$DIST_DIR"/bin
   cp -rf install.sh "$DIST_DIR"
