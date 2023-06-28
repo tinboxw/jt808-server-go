@@ -37,6 +37,7 @@ build_in_docker(){
     -e GOPROXY=https://proxy.golang.com.cn,direct \
     -v /etc/localtime:/etc/localtime \
     -v $OUTPUT_DIR:$OUTPUT_DIR \
+    -v /home/obts/go:/go \
     golang:1.20 \
     bash -c "git config --global --add safe.directory '*' && cd build && $cmd "
 
