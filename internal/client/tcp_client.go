@@ -54,7 +54,10 @@ func (cli *TCPClient) Start() {
 		log.Error().Err(err).Str("sessionId", cli.Session.ID).Msg("Failed to serve session")
 
 		switch {
-		case errors.Is(err, io.EOF), errors.Is(err, io.ErrClosedPipe), errors.Is(err, net.ErrClosed), errors.Is(err, protocol.ErrActiveClose):
+		case errors.Is(err, io.EOF),
+			errors.Is(err, io.ErrClosedPipe),
+			errors.Is(err, net.ErrClosed),
+			errors.Is(err, protocol.ErrActiveClose):
 			return // close connection when EOF or closed
 		default:
 			time.Sleep(1 * time.Second)

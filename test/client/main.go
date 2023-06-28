@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	retryMaxCnt           = 6
-	retryIntervalInSecond = 10
+	retryMaxCnt           = 600
+	retryIntervalInSecond = 2
 )
 
 type (
@@ -104,9 +104,8 @@ func reportLocation(ctx context.Context, cli *client.TCPClient) {
 	}
 }
 
-func dialAndSend(cfg *config.Config, cliWg *sync.WaitGroup) {
-	cli := client.NewTCPClient()
-	addr := cfg.Client.Conn.RemoteAddr
+func dial(cli *client.TCPClient, addr string, pctx context.Context) {
+	tctx, _ := context.WithCancel(pctx)
 	for retry := 1; ; retry++ {
 		err := cli.Dial(addr)
 		if err == nil {
@@ -118,16 +117,34 @@ func dialAndSend(cfg *config.Config, cliWg *sync.WaitGroup) {
 			os.Exit(1)
 		}
 		log.Error().Err(err).Str("addr", addr).Msgf("%s, retry", errDialMsg)
-		time.Sleep(retryIntervalInSecond * time.Second)
+
+		select {
+		case <-time.After(retryIntervalInSecond * time.Second):
+			break
+		case <-tctx.Done():
+			goto done
+		}
 	}
+done:
+}
+
+func do(cfg *config.Config,
+	cliWg *sync.WaitGroup,
+	cli *client.TCPClient,
+	pctx context.Context) {
+
+	tctx, cancel := context.WithCancel(pctx)
 	routines.GoSafe(func() {
 		defer cliWg.Done()
+
 		log.Debug().Msgf("start tcp client...")
 		cli.Start()
+
+		cancel()
 	})
 
 	routines.GoSafe(func() {
-		ctx := context.WithValue(context.Background(), DeviceConfCtxKey{}, cfg.Client.Device)
+		ctx := context.WithValue(tctx, DeviceConfCtxKey{}, cfg.Client.Device)
 		d := buildDevice(ctx, cli)
 		ctx = context.WithValue(ctx, DevicePhoneCtxKey{}, d.Phone)
 		ctx = context.WithValue(ctx, DeviceGeoConfCtxKey{}, cfg.Client.DeviceGeo)
@@ -136,21 +153,31 @@ func dialAndSend(cfg *config.Config, cliWg *sync.WaitGroup) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		register(ctx, cli)
-		log.Debug().Msgf("sent register msg done")
-
 		routines.GoSafe(func() {
+			// 首次注册
+			register(ctx, cli)
+			log.Debug().Msgf("sent register msg done")
+
 			// device status checker
 			for {
-				cache := storage.GetDeviceCache()
-				renewDevice, _ := cache.GetDeviceByPhone(d.Phone)
-				if renewDevice.Status == model.DeviceStatusOnline {
-					wg.Done()
-					log.Debug().Msgf("client is online")
-					return
+				select {
+				case <-time.After(10 * time.Second):
+					// 10秒没有上线，就重新注册
+					register(ctx, cli)
+					log.Debug().Msgf("sent register msg done")
+					break
+				case <-time.After(time.Second):
+					// 每秒检查一次
+					cache := storage.GetDeviceCache()
+					renewDevice, _ := cache.GetDeviceByPhone(d.Phone)
+					if renewDevice.Status == model.DeviceStatusOnline {
+						wg.Done()
+						log.Debug().Msgf("client is online")
+						return
+					}
+					log.Debug().Msgf("waiting for client online, sleep...")
+					break
 				}
-				log.Debug().Msgf("waiting for client online, sleep...")
-				time.Sleep(time.Second)
 			}
 		})
 
@@ -166,6 +193,16 @@ func dialAndSend(cfg *config.Config, cliWg *sync.WaitGroup) {
 			reportLocation(ctx, cli)
 		})
 	})
+}
+
+func dialAndSend(cfg *config.Config, cliWg *sync.WaitGroup, tctx context.Context) {
+	for i := 0; i < cfg.Client.Concurrency; i++ {
+		cli := client.NewTCPClient()
+		addr := cfg.Client.Conn.RemoteAddr
+
+		dial(cli, addr, tctx)
+		do(cfg, cliWg, cli, tctx)
+	}
 }
 
 func main() {
@@ -189,10 +226,19 @@ func main() {
 
 	var cliWg sync.WaitGroup
 	cliWg.Add(cfg.Client.Concurrency)
-
-	for i := 0; i < cfg.Client.Concurrency; i++ {
-		dialAndSend(cfg, &cliWg)
-	}
-
+	tctx, _ := context.WithCancel(context.Background())
+	dialAndSend(cfg, &cliWg, tctx)
 	cliWg.Wait()
+
+	for {
+		select {
+		case <-time.After(retryIntervalInSecond * time.Second):
+			cliWg.Add(cfg.Client.Concurrency)
+			dialAndSend(cfg, &cliWg, tctx)
+			cliWg.Wait()
+			break
+		case <-tctx.Done():
+			return
+		}
+	}
 }
